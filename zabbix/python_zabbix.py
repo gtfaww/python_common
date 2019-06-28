@@ -30,7 +30,7 @@ def send():
         ZabbixMetric('4L-VDMS-PROXY', 'trap', '2')
     ]
 
-    result = ZabbixSender('192.168.164.4',10050).send(packet)
+    result = ZabbixSender('192.168.164.3',10050).send(packet)
     print(result)
 
 if __name__ == '__main__':
