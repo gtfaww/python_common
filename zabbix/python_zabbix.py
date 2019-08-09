@@ -1,4 +1,7 @@
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+import time
+from datetime import datetime
+
 from pyzabbix import ZabbixAPI, ZabbixMetric, ZabbixSender
 
 __author__ = 'guotengfei'
@@ -27,10 +30,10 @@ def main():
 
 def send():
     packet = [
-        ZabbixMetric('4L-VDMS-PROXY', 'trap', '2')
+        ZabbixMetric('192.168.164.4', 'trap', 'error: write mq error')
     ]
 
-    result = ZabbixSender('192.168.164.3',10050).send(packet)
+    result = ZabbixSender('192.168.164.4',10051).send(packet)
     print(result)
 
 if __name__ == '__main__':

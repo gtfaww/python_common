@@ -12,9 +12,12 @@ from tornado.gen import coroutine
 from settings import MYSQL_SETTINGS
 from util import message_format
 
+
+__author__ = 'guotengfei'
+
 class AsyncMysqlClient(object):
 
-    def __init__(self):
+    def __init__(self,):
         super(AsyncMysqlClient, self).__init__()
         self._db_name = MYSQL_SETTINGS['db']
         self._host = MYSQL_SETTINGS['host']
