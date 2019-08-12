@@ -6,8 +6,6 @@ __author__ = 'guotengfei'
 
 import logging
 
-import pika
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -25,17 +23,18 @@ class Consumer(object):
 
     """
 
-    def __init__(self, amqp_url, callback, *arg, **settings):
+    def __init__(self, callback, *arg, **settings):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
         :param str amqp_url: The AMQP url to connect with
 
         """
-
-        self._url = amqp_url
+        self._url = settings.get('amqp_url')
         self._settings = settings
         self._callback = callback
+        self._connection = None
+        self._channel = None
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -46,4 +45,11 @@ class Consumer(object):
 
         """
         LOGGER.info('Connecting to %s', self._url)
-        MQConnection(self._url, 'consumer', **self._settings).connect()
+        self._connection = MQConnection(type='consumer', callback=self._callback, **self._settings)
+        self._connection.connect()
+
+    def get_channel(self):
+        """ init channel"""
+        if not self._channel:
+            self._channel = self._connection.get_channel()
+        return self._channel

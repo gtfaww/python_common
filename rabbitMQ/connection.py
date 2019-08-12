@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
 import functools
+import traceback
 
 __author__ = 'guotengfei'
 
@@ -12,16 +13,33 @@ from pika.adapters.tornado_connection import TornadoConnection
 LOGGER = logging.getLogger(__name__)
 
 
+# 异常捕获
+def exception_catch(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception, e:
+            LOGGER.error("conn init Error: %s", repr(e))
+            LOGGER.error(traceback.format_exc())
+            conn = args[0]
+            conn.close_channel()
+
+    return wrapper
+
+
 class MQConnection(object):
     """
     MQ连接管理类
     """
 
-    def __init__(self, amqp_url, type, *arg, **settings):
+    def __init__(self, amqp_url, type='producer', callback=None, *arg, **settings):
         """Create a new instance of the MQConnection class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
         :param str amqp_url: The AMQP url to connect with
+        :param str type: connection type,for excmple,'consumer','producer'
+        :param str callback: if type is 'consumer',callback is not None
 
         """
         self._connection = None
@@ -30,13 +48,19 @@ class MQConnection(object):
         self._consumer_tag = None
         self._url = amqp_url
         self._type = type
-        self._acked = 0
-        self._nacked = 0
+        self._was_consuming = False
+        self._reconnect_delay = 0
+        # self._acked = 0
+        # self._nacked = 0
+        self._callback = callback
         self.EXCHANGE = settings.get('exchange')
         self.QUEUE = settings.get('queue')
         self.ROUTING_KEY = settings.get('routing_key')
         self.EXCHANGE_TYPE = settings.get('exchange_type')
+        self._passive = settings.get('passive', True)
+        self._durable = settings.get('durable', True)
 
+    @exception_catch
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
         When the connection is established, the on_connection_open method
@@ -57,8 +81,9 @@ class MQConnection(object):
         :param pika.SelectConnection _unused_connection: The connection
         :param Exception err: The error
         """
-        LOGGER.error('Connection open failed, reopening in 0.1 seconds: %s', err)
-        self._connection.ioloop.call_later(0.1, self.reconnect)
+        reconnect_delay = self._get_reconnect_delay()
+        LOGGER.error('Connection open failed, reopening in %d seconds: %s', reconnect_delay, err)
+        self._connection.ioloop.call_later(reconnect_delay, self.reconnect)
 
     def close_connection(self):
         """This method closes the connection to RabbitMQ."""
@@ -88,9 +113,10 @@ class MQConnection(object):
             pass
             # self._connection.ioloop.stop()
         else:
-            LOGGER.warning('Connection closed, reopening in 0.1 seconds: %s',
-                           reason)
-            self._connection.ioloop.call_later(0.1, self.reconnect)
+            reconnect_delay = self._get_reconnect_delay()
+            LOGGER.warning('Connection closed, reopening in %d seconds: %s',
+                           reconnect_delay, reason)
+            self._connection.ioloop.call_later(reconnect_delay, self.reconnect)
 
     def on_connection_open(self, unused_connection):
         """This method is called by pika once the connection to RabbitMQ has
@@ -133,7 +159,8 @@ class MQConnection(object):
 
         """
         LOGGER.warning('Channel %i was closed: %s', channel, reason)
-        self._connection.close()
+        if self._connection.is_open:
+            self._connection.close()
 
     def on_channel_open(self, channel):
         """This method is invoked by pika when the channel has been opened.
@@ -149,6 +176,7 @@ class MQConnection(object):
         self.add_on_channel_close_callback()
         self.setup_exchange(self.EXCHANGE)
 
+    @exception_catch
     def setup_exchange(self, exchange_name):
         """Setup the exchange on RabbitMQ by invoking the Exchange.Declare RPC
         command. When it is complete, the on_exchange_declareok method will
@@ -160,6 +188,8 @@ class MQConnection(object):
         cb = functools.partial(
             self.on_exchange_declareok, userdata=exchange_name)
         self._channel.exchange_declare(
+            passive=self._passive,
+            durable=self._durable,
             exchange=exchange_name,
             exchange_type=self.EXCHANGE_TYPE,
             callback=cb)
@@ -173,6 +203,7 @@ class MQConnection(object):
         LOGGER.info('Exchange declared: %s', userdata)
         self.setup_queue(self.QUEUE)
 
+    @exception_catch
     def setup_queue(self, queue_name):
         """Setup the queue on RabbitMQ by invoking the Queue.Declare RPC
         command. When it is complete, the on_queue_declareok method will
@@ -181,8 +212,12 @@ class MQConnection(object):
         """
         LOGGER.info('Declaring queue %s', queue_name)
         self._channel.queue_declare(
-            queue=queue_name, callback=self.on_queue_declareok)
+            durable=self._durable,
+            passive=self._passive,
+            queue=queue_name,
+            callback=self.on_queue_declareok)
 
+    @exception_catch
     def on_queue_declareok(self, _unused_frame):
         """Method invoked by pika when the Queue.Declare RPC call made in
         setup_queue has completed. In this method we will bind the queue
@@ -213,6 +248,7 @@ class MQConnection(object):
         else:
             self.start_publishing()
 
+    @exception_catch
     def stop_consuming(self):
         """Tell RabbitMQ that you would like to stop consuming by sending the
         Basic.Cancel RPC command.
@@ -222,6 +258,7 @@ class MQConnection(object):
             LOGGER.info('Sending a Basic.Cancel RPC command to RabbitMQ')
             self._channel.basic_cancel(self.on_cancelok, self._consumer_tag)
 
+    @exception_catch
     def start_consuming(self):
         """This method sets up the consumer by first calling
         add_on_cancel_callback so that the object is notified if RabbitMQ
@@ -232,16 +269,34 @@ class MQConnection(object):
         will invoke when a message is fully received.
 
         """
-        LOGGER.info('Issuing consumer related RPC commands')
+        LOGGER.info('start consuming')
+        self._was_consuming = True
         self.add_on_cancel_callback()
-        self._consumer_tag = self._channel.basic_consume(self._callback,
-                                                         self.QUEUE)
+        self._consumer_tag = self._channel.basic_consume(self.QUEUE, self._callback)
+
+    def add_on_cancel_callback(self):
+        """Add a callback that will be invoked if RabbitMQ cancels the consumer
+        for some reason. If RabbitMQ does cancel the consumer,
+        on_consumer_cancelled will be invoked by pika.
+        """
+        LOGGER.info('Adding consumer cancellation callback')
+        self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
+
+    def on_consumer_cancelled(self, method_frame):
+        """Invoked by pika when RabbitMQ sends a Basic.Cancel for a consumer
+        receiving messages.
+        :param pika.frame.Method method_frame: The Basic.Cancel frame
+        """
+        LOGGER.info('Consumer was cancelled remotely, shutting down: %r',
+                    method_frame)
+        if self._channel:
+            self._channel.close()
 
     def start_publishing(self):
         """This method will enable delivery confirmations and schedule the
         first message to be sent to RabbitMQ
         """
-        LOGGER.info('Issuing consumer related RPC commands')
+        LOGGER.info('start publishing')
         # self.enable_delivery_confirmations()
         # self.schedule_next_message()
 
@@ -298,6 +353,7 @@ class MQConnection(object):
         LOGGER.info('Closing the channel')
         self._channel.close()
 
+    @exception_catch
     def open_channel(self):
         """Open a new channel with RabbitMQ by issuing the Channel.Open RPC
         command. When RabbitMQ responds that the channel is open, the
@@ -323,6 +379,14 @@ class MQConnection(object):
         the IOLoop will be buffered but not processed.
 
         """
-        LOGGER.info('Stopping')
         self._closing = True
         LOGGER.info('Stopped')
+
+    def _get_reconnect_delay(self):
+        if self._was_consuming:
+            self._reconnect_delay = 0
+        else:
+            self._reconnect_delay += 1
+        if self._reconnect_delay > 30:
+            self._reconnect_delay = 30
+        return self._reconnect_delay

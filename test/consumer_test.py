@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
 from rabbitMQ.consumer import Consumer
-from settings import NBIOT_PRODUCER
+from settings import CONSUMER
 
 __author__ = 'guotengfei'
 
@@ -31,10 +31,11 @@ class ConsumerTest(object):
         :param str amqp_url: The AMQP url to connect with
 
         """
-        self._consumer = Consumer('amqp://vcom:vcomvcom@192.168.166.72:5672/%2Fvhost?connection_attempts=3&heartbeat=50',
-                                  self.on_message(), **NBIOT_PRODUCER)
+        self._channel = None
+        self._consumer = Consumer(self.on_message, **CONSUMER)
+        self._consumer.connect()
 
-    def on_message(self, unused_channel, basic_deliver, properties, body):
+    def on_message(self, channel, basic_deliver, properties, body):
         """Invoked by pika when a message is delivered from RabbitMQ. The
         channel is passed for your convenience. The basic_deliver object that
         is passed in carries the exchange, routing key, delivery tag and
@@ -42,15 +43,26 @@ class ConsumerTest(object):
         instance of BasicProperties with the message properties and the body
         is the message that was sent.
 
-        :param pika.channel.Channel unused_channel: The channel object
+        :param pika.channel.Channel channel: The channel object
         :param pika.Spec.Basic.Deliver: basic_deliver method
         :param pika.Spec.BasicProperties: properties
         :param bytes body: The message body
 
         """
+        self._channel = channel
         LOGGER.info('Received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, body)
         self.acknowledge_message(basic_deliver.delivery_tag)
 
+    def acknowledge_message(self, delivery_tag):
+        """Acknowledge the message delivery from RabbitMQ by sending a
+        Basic.Ack RPC method for the delivery tag.
+        :param int delivery_tag: The delivery tag from the Basic.Deliver frame
+        """
+        LOGGER.info('Acknowledging message %s', delivery_tag)
+        if not self._channel:
+            self._channel = self._consumer.get_channel()
+        self._channel.basic_ack(delivery_tag)
 
-consumer = ConsumerTest()
+
+consumer_test = ConsumerTest()

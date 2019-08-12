@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
+from tornado.gen import sleep
 
 from rabbitMQ.connection import MQConnection
 
@@ -25,7 +26,7 @@ class Producer(object):
 
     PUBLISH_INTERVAL = 1
 
-    def __init__(self, amqp_url, *arg, **settings):
+    def __init__(self, *arg, **settings):
         """Setup the example publisher object, passing in the URL we will use
         to connect to RabbitMQ.
         :param str amqp_url: The URL for connecting to RabbitMQ
@@ -34,7 +35,7 @@ class Producer(object):
         self._channel = None
         self._message_number = 0
         self._stopping = False
-        self._url = amqp_url
+        self._url = settings.get('amqp_url')
         self.EXCHANGE = settings.get('exchange')
         self.ROUTING_KEY = settings.get('routing_key')
         self._settings = settings
@@ -46,7 +47,7 @@ class Producer(object):
         :rtype: pika.SelectConnection
         """
         LOGGER.info('Connecting to %s', self._url)
-        self._connection = MQConnection(self._url, 'producer', **self._settings)
+        self._connection = MQConnection(**self._settings)
         self._connection.connect()
 
     def publish_message(self, message, routing_key):
@@ -60,45 +61,27 @@ class Producer(object):
         delivery intervals by changing the PUBLISH_INTERVAL constant in the
         class.
         """
+        try:
+            self.get_channel()
+            if self._channel is None or not self._channel.is_open:
+                LOGGER.error('channel is None, retry 3 secend later')
+                sleep(3)
+                self.get_channel()
+
+            # hdrs = {u'مفتاح': u' قيمة', u'键': u'值', u'キー': u'値'}
+            # properties = pika.BasicProperties(
+            #     app_id='example-publisher',
+            #     content_type='application/json',
+            #     headers=hdrs)
+
+            self._channel.basic_publish(self.EXCHANGE, routing_key,
+                                        message)
+            LOGGER.info('Published message # %s, key: %s', message, routing_key)
+            return True
+        except Exception, e:
+            LOGGER.error("mq Published message fail:%s", e.message)
+            return False
+
+    def get_channel(self):
+        """ init channel"""
         self._channel = self._connection.get_channel()
-        if self._channel is None or not self._channel.is_open:
-            LOGGER.error('channel is none')
-            return
-
-        hdrs = {u'مفتاح': u' قيمة', u'键': u'值', u'キー': u'値'}
-        properties = pika.BasicProperties(
-            app_id='example-publisher',
-            content_type='application/json',
-            headers=hdrs)
-
-        self._channel.basic_publish(self.EXCHANGE, routing_key,
-                                    message,
-                                    properties)
-        LOGGER.info('Published message # %i', self._message_number)
-
-    def stop(self):
-        """Stop the example by closing the channel and connection. We
-        set a flag here so that we stop scheduling new messages to be
-        published. The IOLoop is started because this method is
-        invoked by the Try/Catch below when KeyboardInterrupt is caught.
-        Starting the IOLoop again will allow the publisher to cleanly
-        disconnect from RabbitMQ.
-        """
-        LOGGER.info('Stopping')
-        self._stopping = True
-        self.close_channel()
-        self.close_connection()
-
-    def close_channel(self):
-        """Invoke this command to close the channel with RabbitMQ by sending
-        the Channel.Close RPC command.
-        """
-        if self._channel is not None:
-            LOGGER.info('Closing the channel')
-            self._channel.close()
-
-    def close_connection(self):
-        """This method closes the connection to RabbitMQ."""
-        if self._connection is not None:
-            LOGGER.info('Closing connection')
-            self._connection.close()
