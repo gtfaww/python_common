@@ -3,3 +3,6 @@
 *.out
 log/*
 var/log/*
+/dist/
+/ddcCommon.egg-info/
+build/
