@@ -9,4 +9,8 @@ GitHub： [https://github.com/snower/TorMySQL]()
 使用motor实现：
 GitHub： [https://github.com/mongodb/motor]()
 
+## RabbitMq
+使用pika实现：
+GitHub： [https://github.com/pika/pika]()
+
 

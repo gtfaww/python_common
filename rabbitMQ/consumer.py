@@ -53,3 +53,55 @@ class Consumer(object):
         if not self._channel:
             self._channel = self._connection.get_channel()
         return self._channel
+
+    def acknowledge_message(self, delivery_tag, multiple=False, ):
+        """Acknowledge the message delivery from RabbitMQ by sending a
+        Basic.Ack RPC method for the delivery tag.
+        :param int delivery_tag: The delivery tag from the Basic.Deliver frame
+        """
+        LOGGER.info('Acknowledging message %s', delivery_tag)
+        if not self._channel:
+            self._channel = self.get_channel()
+        self._channel.basic_ack(delivery_tag, multiple)
+
+    def nack_message(self, delivery_tag=None, multiple=False, requeue=True):
+        """This method allows a client to reject one or more incoming messages.
+        It can be used to interrupt and cancel large incoming messages, or
+        return untreatable messages to their original queue.
+
+        :param integer delivery_tag: int/long The server-assigned delivery tag
+        :param bool multiple: If set to True, the delivery tag is treated as
+                              "up to and including", so that multiple messages
+                              can be acknowledged with a single method. If set
+                              to False, the delivery tag refers to a single
+                              message. If the multiple field is 1, and the
+                              delivery tag is zero, this indicates
+                              acknowledgement of all outstanding messages.
+        :param bool requeue: If requeue is true, the server will attempt to
+                             requeue the message. If requeue is false or the
+                             requeue attempt fails the messages are discarded or
+                             dead-lettered.
+
+        """
+        LOGGER.info('Nack message %s', delivery_tag)
+        if not self._channel:
+            self._channel = self.get_channel()
+        self._channel.basic_nack(delivery_tag, multiple=multiple, requeue=requeue)
+
+    def reject_message(self, delivery_tag, requeue=True):
+        """Reject an incoming message. This method allows a client to reject a
+        message. It can be used to interrupt and cancel large incoming messages,
+        or return untreatable messages to their original queue.
+
+        :param integer delivery_tag: int/long The server-assigned delivery tag
+        :param bool requeue: If requeue is true, the server will attempt to
+                             requeue the message. If requeue is false or the
+                             requeue attempt fails the messages are discarded or
+                             dead-lettered.
+        :raises: TypeError
+
+        """
+        LOGGER.info('Reject message %s', delivery_tag)
+        if not self._channel:
+            self._channel = self.get_channel()
+        self._channel.basic_reject(delivery_tag, requeue)

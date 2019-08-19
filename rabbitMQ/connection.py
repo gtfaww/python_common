@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
-import functools
-import traceback
 
 __author__ = 'guotengfei'
-
+import functools
 import logging
+import traceback
 
 import pika
 from pika.adapters.tornado_connection import TornadoConnection
@@ -50,8 +49,6 @@ class MQConnection(object):
         self._type = type
         self._was_consuming = False
         self._reconnect_delay = 0
-        # self._acked = 0
-        # self._nacked = 0
         self._callback = callback
         self.EXCHANGE = settings.get('exchange')
         self.QUEUE = settings.get('queue')
@@ -59,6 +56,7 @@ class MQConnection(object):
         self.EXCHANGE_TYPE = settings.get('exchange_type')
         self._passive = settings.get('passive', True)
         self._durable = settings.get('durable', True)
+        self._prefetch_count = settings.get('prefetch_count', 128)
 
     @exception_catch
     def connect(self):
@@ -272,6 +270,7 @@ class MQConnection(object):
         LOGGER.info('start consuming')
         self._was_consuming = True
         self.add_on_cancel_callback()
+        self._channel.basic_qos(prefetch_count=self._prefetch_count)
         self._consumer_tag = self._channel.basic_consume(self.QUEUE, self._callback)
 
     def add_on_cancel_callback(self):
@@ -297,7 +296,7 @@ class MQConnection(object):
         first message to be sent to RabbitMQ
         """
         LOGGER.info('start publishing')
-        # self.enable_delivery_confirmations()
+        self.enable_delivery_confirmations()
         # self.schedule_next_message()
 
     def enable_delivery_confirmations(self):
@@ -310,40 +309,7 @@ class MQConnection(object):
         is confirming or rejecting.
         """
         LOGGER.info('Issuing Confirm.Select RPC command')
-        self._channel.confirm_delivery(self.on_delivery_confirmation)
-
-    def on_delivery_confirmation(self, method_frame):
-        """Invoked by pika when RabbitMQ responds to a Basic.Publish RPC
-        command, passing in either a Basic.Ack or Basic.Nack frame with
-        the delivery tag of the message that was published. The delivery tag
-        is an integer counter indicating the message number that was sent
-        on the channel via Basic.Publish. Here we're just doing house keeping
-        to keep track of stats and remove message numbers that we expect
-        a delivery confirmation of from the list used to keep track of messages
-        that are pending confirmation.
-        :param pika.frame.Method method_frame: Basic.Ack or Basic.Nack frame
-        """
-        confirmation_type = method_frame.method.NAME.split('.')[1].lower()
-        LOGGER.info('Received %s for delivery tag: %i', confirmation_type,
-                    method_frame.method.delivery_tag)
-        if confirmation_type == 'ack':
-            self._acked += 1
-        elif confirmation_type == 'nack':
-            self._nacked += 1
-        self._deliveries.remove(method_frame.method.delivery_tag)
-        LOGGER.info(
-            'Published %i messages, %i have yet to be confirmed, '
-            '%i were acked and %i were nacked', self._message_number,
-            len(self._deliveries), self._acked, self._nacked)
-
-    def schedule_next_message(self):
-        """If we are not closing our connection to RabbitMQ, schedule another
-        message to be delivered in PUBLISH_INTERVAL seconds.
-        """
-        LOGGER.info('Scheduling next message for %0.1f seconds',
-                    self.PUBLISH_INTERVAL)
-        self._connection.ioloop.call_later(self.PUBLISH_INTERVAL,
-                                           self.publish_message)
+        self._channel.confirm_delivery(self._callback)
 
     def close_channel(self):
         """Call to close the channel with RabbitMQ cleanly by issuing the
@@ -367,6 +333,11 @@ class MQConnection(object):
         """return _channel.
         """
         return self._channel
+
+    def get_connection(self):
+        """return _connection.
+        """
+        return self._connection
 
     def stop(self):
         """Cleanly shutdown the connection to RabbitMQ by stopping the consumer

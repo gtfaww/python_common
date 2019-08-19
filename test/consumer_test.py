@@ -52,17 +52,7 @@ class ConsumerTest(object):
         self._channel = channel
         LOGGER.info('Received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, body)
-        self.acknowledge_message(basic_deliver.delivery_tag)
-
-    def acknowledge_message(self, delivery_tag):
-        """Acknowledge the message delivery from RabbitMQ by sending a
-        Basic.Ack RPC method for the delivery tag.
-        :param int delivery_tag: The delivery tag from the Basic.Deliver frame
-        """
-        LOGGER.info('Acknowledging message %s', delivery_tag)
-        if not self._channel:
-            self._channel = self._consumer.get_channel()
-        self._channel.basic_ack(delivery_tag)
+        self._consumer.acknowledge_message(basic_deliver.delivery_tag)
 
 
 consumer_test = ConsumerTest()

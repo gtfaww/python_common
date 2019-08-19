@@ -2,6 +2,8 @@
 # pylint: disable=C0111,C0103,R0205
 import logging
 
+from rabbitMQ.producer import Producer
+from settings import PRODUCER
 from test.consumer_test import consumer_test
 
 __author__ = 'guotengfei'
@@ -17,8 +19,8 @@ def main():
                   '-35s %(lineno) -5d: %(message)s')
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     global example
-    # example = Producer(**PRODUCER)
-    # example.connect()
+    example = Producer(**PRODUCER)
+    example.connect()
     # example.publish_message('test', 'locationKey')
     consumer_test
     loop.add_timeout(deadline=(loop.time() + .1), callback=init_component)
