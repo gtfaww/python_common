@@ -2,20 +2,25 @@
 # 19-6-27
 # create by: guotengfei
 
-from setuptools import setup, find_packages
+from setuptools import setup
+
+kwargs = {}
 
 setup(
     name='ddcCommon',
     version='1.0.0',
-    packages=find_packages('rabbitMQ'),
-    scripts=[],
-    install_requires=[],
-    package_data={
-        # If any package contains *.txt or *.rst files, include them:
-        '': ['*.md', '*.rst'],
-        # And include any *.msg files found in the 'hello' package, too:
-        # 'hello': ['*.msg'],
-    },
+    packages=['ddcCommon', 'ddcCommon.rabbitMQ'],
+    install_requires=[
+        'pika>=1.1.0'
+    ],
+    # scripts=[],
+    # install_requires=[],
+    # package_data={
+    #     # If any package contains *.txt or *.rst files, include them:
+    #     '': ['*.md', '*.rst'],
+    #     # And include any *.msg files found in the 'hello' package, too:
+    #     # 'hello': ['*.msg'],
+    # },
     author='guotengfei',
     author_email='guotengfei@zzvcom.com',
     url='https://github.com/gtfaww/python_common.git',
@@ -37,5 +42,5 @@ setup(
                  'Programming Language :: Python :: 2.6',
                  'Programming Language :: Python :: 2.7'
                  ],
-    zip_safe=False,
+    **kwargs
 )

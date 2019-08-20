@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
-from rabbitMQ.connection import MQConnection
+from ddcCommon.rabbitMQ.connection import MQConnection
 
 __author__ = 'guotengfei'
 

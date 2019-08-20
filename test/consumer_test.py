@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
-from rabbitMQ.consumer import Consumer
+from ddcCommon.rabbitMQ.consumer import Consumer
 from settings import CONSUMER
 
 __author__ = 'guotengfei'

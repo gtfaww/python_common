@@ -2,7 +2,7 @@
 # pylint: disable=C0111,C0103,R0205
 import logging
 
-from rabbitMQ.producer import Producer
+from ddcCommon.rabbitMQ.producer import Producer
 from settings import PRODUCER
 from test.consumer_test import consumer_test
 
