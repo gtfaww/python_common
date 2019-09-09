@@ -8,7 +8,7 @@ kwargs = {}
 
 setup(
     name='ddcCommon',
-    version='1.0.0',
+    version='1.0.2',
     packages=['ddcCommon', 'ddcCommon.rabbitMQ'],
     install_requires=[
         'pika>=1.1.0'

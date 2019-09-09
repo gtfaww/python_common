@@ -30,7 +30,7 @@ def main():
 
 def init_component():
     pass
-    # example.publish_message('test', 'locationKey')
+    example.publish_message('test', 'locationKey')
 
 
 if __name__ == "__main__":

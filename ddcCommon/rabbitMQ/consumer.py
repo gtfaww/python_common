@@ -50,8 +50,7 @@ class Consumer(object):
 
     def get_channel(self):
         """ init channel"""
-        if not self._channel:
-            self._channel = self._connection.get_channel()
+        self._channel = self._connection.get_channel()
         return self._channel
 
     def acknowledge_message(self, delivery_tag, multiple=False, ):
@@ -60,8 +59,7 @@ class Consumer(object):
         :param int delivery_tag: The delivery tag from the Basic.Deliver frame
         """
         LOGGER.info('Acknowledging message %s', delivery_tag)
-        if not self._channel:
-            self._channel = self.get_channel()
+        self.get_channel()
         self._channel.basic_ack(delivery_tag, multiple)
 
     def nack_message(self, delivery_tag=None, multiple=False, requeue=True):
@@ -84,8 +82,7 @@ class Consumer(object):
 
         """
         LOGGER.info('Nack message %s', delivery_tag)
-        if not self._channel:
-            self._channel = self.get_channel()
+        self.get_channel()
         self._channel.basic_nack(delivery_tag, multiple=multiple, requeue=requeue)
 
     def reject_message(self, delivery_tag, requeue=True):
@@ -102,6 +99,5 @@ class Consumer(object):
 
         """
         LOGGER.info('Reject message %s', delivery_tag)
-        if not self._channel:
-            self._channel = self.get_channel()
+        self.get_channel()
         self._channel.basic_reject(delivery_tag, requeue)
