@@ -83,7 +83,7 @@ class Producer(object):
                                         {'routing_key': routing_key, 'message': message})
             LOGGER.info('Published message # %s, key: %s', message, routing_key)
             return True
-        except Exception, e:
+        except Exception as e:
             LOGGER.error("mq Published message fail:%s", e.message)
             return False
 

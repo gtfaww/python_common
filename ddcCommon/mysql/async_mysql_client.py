@@ -48,7 +48,7 @@ class AsyncMysqlClient(object):
             conn, cursor = yield self.get_conn_cursor()
             yield cursor.execute(sql, args)
             data = cursor.fetchone()
-        except Exception, e:
+        except Exception as e:
             logging.error(traceback.print_exc())
             logging.error(message_format("Query One error: %s" % e.message))
         else:
@@ -63,7 +63,7 @@ class AsyncMysqlClient(object):
             conn, cursor = yield self.get_conn_cursor()
             yield cursor.execute(sql, args)
             datas = cursor.fetchall()
-        except Exception, e:
+        except Exception as e:
             logging.error(traceback.print_exc())
             logging.error(message_format("Query All error: %s" % e.message))
         else:
@@ -77,7 +77,7 @@ class AsyncMysqlClient(object):
         try:
             conn, cursor = yield self.get_conn_cursor()
             ret = yield cursor.execute(sql, args)
-        except Exception, e:
+        except Exception as e:
             logging.error(traceback.print_exc())
             logging.error(message_format("Execute One error: %s" % e.message))
             yield conn.rollback()
@@ -92,7 +92,7 @@ class AsyncMysqlClient(object):
         try:
             conn, cursor = yield self.get_conn_cursor()
             ret = yield cursor.executemany(sql, args)
-        except Exception, e:
+        except Exception as e:
             logging.error(traceback.print_exc())
             logging.error(message_format("Execute Many error: %s" % e.message))
             yield conn.rollback()
@@ -108,7 +108,7 @@ class AsyncMysqlClient(object):
             conn, cursor = yield self.get_conn_cursor()
             for sql in sqls:
                 ret = yield cursor.execute(sql)
-        except Exception, e:
+        except Exception as e:
             logging.error(traceback.print_exc())
             logging.error(message_format("Execute Many error: %s" % e.message))
             yield conn.rollback()

@@ -18,7 +18,7 @@ def exception_catch(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except Exception, e:
+        except Exception as e:
             LOGGER.error("conn init Error: %s", repr(e))
             LOGGER.error(traceback.format_exc())
             conn = args[0]

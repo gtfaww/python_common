@@ -8,7 +8,7 @@ kwargs = {}
 
 setup(
     name='ddcCommon',
-    version='1.0.2',
+    version='1.0.3',
     packages=['ddcCommon', 'ddcCommon.rabbitMQ'],
     install_requires=[
         'pika>=1.1.0'
@@ -40,7 +40,8 @@ setup(
                  'Topic :: Software Development :: Libraries',
                  'Programming Language :: Python',
                  'Programming Language :: Python :: 2.6',
-                 'Programming Language :: Python :: 2.7'
+                 'Programming Language :: Python :: 2.7',
+                 'Programming Language :: Python :: 3.7'
                  ],
     **kwargs
 )
