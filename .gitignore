@@ -6,3 +6,4 @@ var/log/*
 /dist/
 /ddcCommon.egg-info/
 build/
+/ddcCommon/data/result/

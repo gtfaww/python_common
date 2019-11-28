@@ -21,9 +21,9 @@ if __name__ == '__main__':
     sql = SQLContext(sc)
 
     lines = sc.textFile('../data/users.txt')
-    user = lines.map(lambda l: l.split(",")).map(lambda p: Row(id=p[0], name=p[1]))
+    user = lines.map(lambda l: l.split(",")).map(lambda p: (p[0], p[1]))
 
-    sql.createDataFrame(user).registerTempTable("user")
-    df = sql.sql("select * from user")
-    print(df.collect())
-    sql.sql("select id,name form user").write.save("../data/result.txt")
+    sql.createDataFrame(user, ['id', 'name']).registerTempTable('user')
+    df = sql.sql("select id,name from user")
+
+    df.write.save("../data/result", format='json')
