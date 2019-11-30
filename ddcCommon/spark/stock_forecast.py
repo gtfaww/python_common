@@ -27,6 +27,6 @@ if __name__ == '__main__':
         'auto.offset.reset': 'earliest'
     }
 
-    stream = KafkaUtils.createDirectStream(ssc, ['ddc_test_topic'], kafka_parm)
+    stream = KafkaUtils.createStream()
     stream.pprint(5)
     ssc.start()
