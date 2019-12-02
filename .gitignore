@@ -7,3 +7,4 @@ var/log/*
 /ddcCommon.egg-info/
 build/
 /ddcCommon/data/result/
+/ddcCommon/data/checkpoint/
