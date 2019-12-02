@@ -29,3 +29,11 @@ CONSUMER = dict(amqp_url="amqp://vcom:vcomvcom@192.168.166.72:5672/%2Fvhost?conn
                 mandatory=True,  # 没有队列消费数据时返回消息
                 prefetch_count=128  # 预取消息数量
                 )
+
+MONGO_SETTING = dict(
+    ip='192.168.166.104',
+    user='vcom',
+    password='vcomvcom',
+    port=27017,
+    dbname='mongodb'
+)

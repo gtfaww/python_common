@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import json
 import logging
 
-import pymysql
+import pymongo
 from pyspark import SparkContext, SparkConf
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
@@ -21,17 +22,14 @@ def save_location_data(pos_data):
     """
     添加一条消息
     """
-    db = pymysql.connect(host="192.168.166.103", user="vcom", password="vcomvcom", database="ddc_test",
-                         port=3306)
-    cursor = db.cursor()
+    client = pymongo.MongoClient('mongodb://192.168.166.104:27017/mongodb', username='vcom', password='vcomvcom')
+
+    db = client['mongodb']
 
     def doinsert(item):
-        sql = "insert into test(text) values ( '%s')" % (item)
-        try:
-            cursor.execute(sql)
-            db.commit()
-        except:
-            db.rollback()
+        item = json.loads(item)
+        ret = db.test.insert(item)
+        LOGGER.info("数据保存成功")
 
     for item in pos_data:
         doinsert(item)
@@ -43,11 +41,11 @@ def func(rdd):
 
 
 if __name__ == '__main__':
-    conf = SparkConf().setAppName("mysql").set('spark.io.compression.codec', 'snappy')
+    conf = SparkConf().setAppName("kafa").set('spark.io.compression.codec', 'snappy')
     sc = SparkContext(conf=conf)
     ssc = StreamingContext(sc, 10)
 
-    # ssc.checkpoint('../data/checkpoint')
+    ssc.checkpoint('../data/checkpoint')
 
     kafka_parm = {
         'auto.offset.reset': 'earliest'
