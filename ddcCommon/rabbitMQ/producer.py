@@ -103,24 +103,27 @@ class Producer(object):
         that are pending confirmation.
         :param pika.frame.Method method_frame: Basic.Ack or Basic.Nack frame
         """
-        confirmation_type = method_frame.method.NAME.split('.')[1].lower()
-        delivery_tag = method_frame.method.delivery_tag
-        LOGGER.info('Received %s for delivery tag: %i', confirmation_type,
-                    delivery_tag)
-        if confirmation_type == 'ack':
-            self._acked += 1
-        elif confirmation_type == 'nack':
-            self._nacked += 1
-            msg = self._deliveries.get(delivery_tag)
-            msg = json.loads(msg)
-            LOGGER.info('resend msg: %s  for %0.1f seconds ', msg['message'], self.PUBLISH_INTERVAL)
-            self.schedule_next_message(msg['message'], msg['routing_key'])
+        try:
+            confirmation_type = method_frame.method.NAME.split('.')[1].lower()
+            delivery_tag = method_frame.method.delivery_tag
+            LOGGER.info('Received %s for delivery tag: %i', confirmation_type,
+                        delivery_tag)
+            if confirmation_type == 'ack':
+                self._acked += 1
+            elif confirmation_type == 'nack':
+                self._nacked += 1
+                msg = self._deliveries.get(self._message_number)
+                msg = json.loads(msg)
+                LOGGER.info('resend msg: %s  for %0.1f seconds ', msg['message'], self.PUBLISH_INTERVAL)
+                self.schedule_next_message(msg['message'], msg['routing_key'])
 
-        self._deliveries.pop(delivery_tag)
-        LOGGER.info(
-            'Published %i messages, %i have yet to be confirmed, '
-            '%i were acked and %i were nacked', self._message_number,
-            len(self._deliveries), self._acked, self._nacked)
+            self._deliveries.pop(self._message_number, None)
+            LOGGER.info(
+                'Published %i messages, %i have yet to be confirmed, '
+                '%i were acked and %i were nacked', self._message_number,
+                len(self._deliveries), self._acked, self._nacked)
+        except Exception as e:
+            LOGGER.error("mq confirmation message fail:%s", e.message)
 
     def return_callback(self, channel, method, properties, body):
         """The function to call, having the signature

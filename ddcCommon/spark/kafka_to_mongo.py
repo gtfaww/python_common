@@ -41,20 +41,23 @@ def func(rdd):
 
 
 if __name__ == '__main__':
-    conf = SparkConf().setAppName("kafa").set('spark.io.compression.codec', 'snappy')
+    conf = SparkConf().setMaster('local[2]').setAppName("kafka").set('spark.io.compression.codec', 'snappy')
     sc = SparkContext(conf=conf)
     ssc = StreamingContext(sc, 10)
 
-    ssc.checkpoint('../data/checkpoint')
+    # ssc.checkpoint('../data/checkpoint')
 
     kafka_parm = {
-        'auto.offset.reset': 'earliest'
+        "bootstrap.servers": 'qg-cdh-server-04.vcom.local:9092,qg-cdh-server-05.vcom.local:9092,qg-cdh-server-06.vcom.local:9092',
+        "group.id": "ddc_test_group",
+        'auto.offset.reset': 'smallest'
     }
-    zk = ('qg-cdh-server-01.vcom.local:2181,qg-cdh-server-02.vcom.local:2181,qg-cdh-server-03.vcom.local:2181/kafka')
-    topic = dict(ddc_test_topic=4)
+    # zk = ('qg-cdh-server-01.vcom.local:2181,qg-cdh-server-02.vcom.local:2181,qg-cdh-server-03.vcom.local:2181/kafka')
+    # topic = dict(ddc_test_topic=4)
+    topic = ['ddc_test_topic']
 
-    stream = KafkaUtils.createStream(ssc, zkQuorum=zk, groupId='ddc_test_group', topics=topic)
-    # stream = KafkaUtils.createDirectStream(ssc, zkQuorum=zk, groupId='ddc_test_group', topics=topic)
+    # stream = KafkaUtils.createStream(ssc, zkQuorum=zk, groupId='ddc_test_group', topics=topic)
+    stream = KafkaUtils.createDirectStream(ssc, topics=topic, kafkaParams=kafka_parm)
 
     # msg = stream.map(lambda x: x.split(" ")).map(lambda x: (x, 1)).reduceByKey(add)
     stream = stream.map(lambda x: x[1])
