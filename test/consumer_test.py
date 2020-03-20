@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
+import traceback
+
 from ddcCommon.rabbitMQ.consumer import Consumer
 from settings import CONSUMER
 
@@ -49,10 +51,15 @@ class ConsumerTest(object):
         :param bytes body: The message body
 
         """
-        self._channel = channel
-        LOGGER.info('Received message # %s from %s: %s',
-                    basic_deliver.delivery_tag, properties.app_id, body)
-        self._consumer.acknowledge_message(basic_deliver.delivery_tag)
+        try:
+            self._channel = channel
+            LOGGER.info('Received message # %s from %s: %s',
+                        basic_deliver.delivery_tag, properties.app_id, body)
+            self._consumer.acknowledge_message(basic_deliver.delivery_tag)
+            print 1
+            self._consumer.acknowledge_message(basic_deliver.delivery_tag)
+        except Exception as e:
+            LOGGER.error(traceback.format_exc())
 
 
 consumer_test = ConsumerTest()

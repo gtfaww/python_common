@@ -69,8 +69,8 @@ class Producer(object):
         try:
             self.get_channel()
             if self._channel is None or not self._channel.is_open:
-                LOGGER.error('channel is None, retry 3 secend later')
-                sleep(3)
+                LOGGER.error('channel is None, retry 0.1 secend later')
+                # sleep(1)
                 self.get_channel()
 
             self._channel.basic_publish(self.EXCHANGE, routing_key,
