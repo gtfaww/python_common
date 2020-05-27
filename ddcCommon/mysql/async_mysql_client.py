@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
-import re
-import time
 import traceback
 
 import tormysql
@@ -9,23 +8,24 @@ from tormysql import DictCursor
 from tornado import gen
 from tornado.gen import coroutine
 
-from settings import MYSQL_SETTINGS
-from util import message_format
-
-
 __author__ = 'guotengfei'
+
+from ddcCommon.util.util import message_format
+
+LOGGER = logging.getLogger(__name__)
+
 
 class AsyncMysqlClient(object):
 
-    def __init__(self,):
-        super(AsyncMysqlClient, self).__init__()
-        self._db_name = MYSQL_SETTINGS['db']
-        self._host = MYSQL_SETTINGS['host']
-        self._port = MYSQL_SETTINGS['port']
-        self._user_name = MYSQL_SETTINGS['user']
-        self._password = MYSQL_SETTINGS['passwd']
-        self._max_conn = MYSQL_SETTINGS['max_conn']
-        self._conn_time_out = MYSQL_SETTINGS['conn_time_out']
+    def __init__(self, **settings):
+        self._db_name = settings['database']
+        self._host = settings['ip']
+        self._port = settings['port']
+        self._user_name = settings['user']
+        self._password = settings['password']
+        self._max_conn = settings['conn_max']
+        self._conn_time_out = settings['conn_time_out']
+        self._charset = settings['charset']
         self._db = None
         self._client = None
 
@@ -38,7 +38,7 @@ class AsyncMysqlClient(object):
             user=self._user_name,
             passwd=self._password,
             db=self._db_name,
-            charset="utf8"
+            charset=self._charset
         )
 
     @coroutine
@@ -49,8 +49,8 @@ class AsyncMysqlClient(object):
             yield cursor.execute(sql, args)
             data = cursor.fetchone()
         except Exception as e:
-            logging.error(traceback.print_exc())
-            logging.error(message_format("Query One error: %s" % e.message))
+            LOGGER.error(traceback.print_exc())
+            LOGGER.critical(message_format("Query One error: " + sql + ' error_msg: ' + json.dumps(e.args)))
         else:
             yield conn.commit()
         cursor.close()
@@ -64,8 +64,8 @@ class AsyncMysqlClient(object):
             yield cursor.execute(sql, args)
             datas = cursor.fetchall()
         except Exception as e:
-            logging.error(traceback.print_exc())
-            logging.error(message_format("Query All error: %s" % e.message))
+            LOGGER.error(traceback.print_exc())
+            LOGGER.critical(message_format("Query All error: " + sql + ' error_msg: ' + json.dumps(e.args)))
         else:
             yield conn.commit()
         cursor.close()
@@ -78,8 +78,8 @@ class AsyncMysqlClient(object):
             conn, cursor = yield self.get_conn_cursor()
             ret = yield cursor.execute(sql, args)
         except Exception as e:
-            logging.error(traceback.print_exc())
-            logging.error(message_format("Execute One error: %s" % e.message))
+            LOGGER.error(traceback.print_exc())
+            LOGGER.critical(message_format("Execute One error: " + sql + ' error_msg: ' + json.dumps(e.args)))
             yield conn.rollback()
         else:
             yield conn.commit()
@@ -93,8 +93,8 @@ class AsyncMysqlClient(object):
             conn, cursor = yield self.get_conn_cursor()
             ret = yield cursor.executemany(sql, args)
         except Exception as e:
-            logging.error(traceback.print_exc())
-            logging.error(message_format("Execute Many error: %s" % e.message))
+            LOGGER.error(traceback.print_exc())
+            LOGGER.critical(message_format("Execute Many error: " + sql + ' error_msg: ' + json.dumps(e.args)))
             yield conn.rollback()
         else:
             yield conn.commit()
@@ -109,8 +109,8 @@ class AsyncMysqlClient(object):
             for sql in sqls:
                 ret = yield cursor.execute(sql)
         except Exception as e:
-            logging.error(traceback.print_exc())
-            logging.error(message_format("Execute Many error: %s" % e.message))
+            LOGGER.error(traceback.print_exc())
+            LOGGER.critical(message_format("Execute Many error: " + sql + ' error_msg: ' + json.dumps(e.args)))
             yield conn.rollback()
             rets = False
         else:
@@ -125,6 +125,3 @@ class AsyncMysqlClient(object):
         conn = yield self.pool.Connection()
         cursor = conn.cursor(cursor_cls=DictCursor)
         raise gen.Return((conn, cursor))
-
-
-async_mysql_client = AsyncMysqlClient()

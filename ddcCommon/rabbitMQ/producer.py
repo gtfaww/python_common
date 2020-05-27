@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
+from collections import deque
+
 from ddcCommon.rabbitMQ.connection import MQConnection
 
 __author__ = 'guotengfei'
-import json
 
-from tornado.gen import sleep
+import json
 
 import logging
 
@@ -31,6 +32,8 @@ class Producer(object):
         :param str amqp_url: The URL for connecting to RabbitMQ
         """
         self._connection = None
+        self._max_conn = settings.get('max_conn', 1)
+        self._pool = deque(maxlen=self._max_conn)
         self._channel = None
         self._acked = 0
         self._nacked = 0
@@ -52,8 +55,10 @@ class Producer(object):
         :rtype: pika.SelectConnection
         """
         LOGGER.info('Connecting to %s', self._url)
-        self._connection = MQConnection(callback=self.on_delivery_confirmation, **self._settings)
-        self._connection.connect()
+        for i in range(self._max_conn):
+            conn = MQConnection(self._url, callback=self.on_delivery_confirmation, **self._settings)
+            conn.connect()
+            self._pool.append(conn)
 
     def publish_message(self, message, routing_key):
         """If the class is not stopping, publish a message to RabbitMQ,
@@ -68,10 +73,10 @@ class Producer(object):
         """
         try:
             self.get_channel()
-            if self._channel is None or not self._channel.is_open:
-                LOGGER.error('channel is None, retry 0.1 secend later')
-                # sleep(1)
-                self.get_channel()
+            # if self._channel is None or not self._channel.is_open:
+            #     LOGGER.error('channel is None, retry 0.1 secend later')
+            #     # sleep(1)
+            #     self.get_channel()
 
             self._channel.basic_publish(self.EXCHANGE, routing_key,
                                         message, properties=self.PROPERTIES,
@@ -81,15 +86,26 @@ class Producer(object):
             self._message_number += 1
             self._deliveries.setdefault(self._message_number,
                                         {'routing_key': routing_key, 'message': message})
-            LOGGER.info('Published message # %s, key: %s', message, routing_key)
+            LOGGER.info('Published message %s, key: %s', message, routing_key)
             return True
         except Exception as e:
-            LOGGER.error("mq Published message fail:%s", e.message)
+            if isinstance(e, AttributeError):
+                msg = e.args[0]
+            else:
+                msg = e.message
+            LOGGER.error("mq Published message fail:%s", msg)
             return False
 
     def get_channel(self):
-        """ init channel"""
+        """ get channel"""
+        self._connection = self._pool.popleft()
         self._channel = self._connection.get_channel()
+        self._pool.append(self._connection)
+        if self._channel is None or not self._channel.is_open:
+            LOGGER.error('channel is None')
+            self._connection = self._pool.popleft()
+            self._channel = self._connection.get_channel()
+            self._pool.append(self._connection)
         return self._channel
 
     def on_delivery_confirmation(self, method_frame):

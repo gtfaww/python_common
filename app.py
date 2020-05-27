@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
 import logging
+from time import sleep
 
 from ddcCommon.rabbitMQ.producer import Producer
 from settings import PRODUCER
-from test.consumer_test import consumer_test
+from test.consumer_test import consumer_factory
 
 __author__ = 'guotengfei'
 
@@ -21,8 +22,8 @@ def main():
     global example
     example = Producer(**PRODUCER)
     example.connect()
-    # example.publish_message('test', 'locationKey')
-    consumer_test
+    example.publish_message('test', 'locationKey')
+    consumer_factory
     loop.add_timeout(deadline=(loop.time() + .1), callback=init_component)
 
     loop.start()
@@ -30,7 +31,7 @@ def main():
 
 def init_component():
     pass
-    example.publish_message('test', 'locationKey')
+    example.publish_message('vcomExchange', 'vcomKey1')
 
 
 if __name__ == "__main__":

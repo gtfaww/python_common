@@ -23,14 +23,14 @@ class Consumer(object):
 
     """
 
-    def __init__(self, callback, *arg, **settings):
+    def __init__(self, callback, url, *arg, **settings):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
         :param str amqp_url: The AMQP url to connect with
 
         """
-        self._url = settings.get('amqp_url')
+        self._url = url
         self._settings = settings
         self._callback = callback
         self._connection = None
@@ -45,7 +45,7 @@ class Consumer(object):
 
         """
         LOGGER.info('Connecting to %s', self._url)
-        self._connection = MQConnection(type='consumer', callback=self._callback, **self._settings)
+        self._connection = MQConnection(self._url, type='consumer', callback=self._callback, **self._settings)
         self._connection.connect()
 
     def get_channel(self):
@@ -53,7 +53,7 @@ class Consumer(object):
         self._channel = self._connection.get_channel()
         return self._channel
 
-    def acknowledge_message(self, delivery_tag, multiple=False, ):
+    def acknowledge_message(self, delivery_tag, multiple=False):
         """Acknowledge the message delivery from RabbitMQ by sending a
         Basic.Ack RPC method for the delivery tag.
         :param int delivery_tag: The delivery tag from the Basic.Deliver frame

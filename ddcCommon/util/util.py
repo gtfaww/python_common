@@ -5,8 +5,13 @@ __date__ = '2020/3/20'
 
 import json
 import logging
+import sys
 import traceback
-from ConfigParser import RawConfigParser
+
+try:
+    from ConfigParser import RawConfigParser
+except Exception:
+    from configparser import RawConfigParser
 
 import requests
 
@@ -98,7 +103,7 @@ def parameter_config_setting(local_file_path, data, config_key_values):
         cf = open(local_file_path, 'w')
         raw_config.write(cf)
         cf.close()
-    except Exception, e:
+    except Exception as e:
         LOGGER.critical(traceback.print_exc())
     else:
         LOGGER.info("Config write success")
@@ -137,10 +142,35 @@ def syn_send_http_req(req_url, parm, headers, method="POST"):
         response = requests.request(method=method, url=req_url, headers=headers, data=parm, timeout=10.0)
     except Exception:
         LOGGER.critical(traceback.format_exc())
-        LOGGER.critical("Acquire Parameter Config failed!", '')
+        LOGGER.critical("Acquire Parameter Config failed!")
         response = None
     if response:
         pass
     else:
         response = None
     return response
+
+
+def message_format(msg, uri='', data=None):
+    """
+    日志信息格式化
+    :param msg: 日志信息
+    :param uri: 接口地址，handler层必传
+    :param data: 接收的请求数据，用于获取uuid和device_id
+    :return:格式化日志信息字符串
+    """
+    module_name = 'python_common'  # 模块名称
+    uri = "uri=" + str(uri)  # 接口uri
+    file_name = sys._getframe().f_back.f_code.co_filename
+    file_name = file_name.split("\\")
+    file_name = "file_name=" + file_name[-1]  # 调用此函数即日志打印所在的文件名
+    func_name = "func_name=" + sys._getframe().f_back.f_code.co_name  # 调用此函数即日志打印所在的函数名
+    line_no = "line_no=" + str(sys._getframe().f_back.f_lineno)  # 调用此函数即日志打印所在的行数
+    uuid = data.get('uuid', '') if data else ''
+    device_id = data.get('device_id', '') if data else ''
+    uuid = "uuid=" + str(uuid)  # uuid
+    device_id = "device_id=" + str(device_id)  # 设备id
+    message = "log_msg=" + str(msg)  # 日志信息
+    format_list = [uri, file_name, func_name, line_no, uuid, device_id, message]
+    format_str = module_name + "&".join(format_list)
+    return format_str

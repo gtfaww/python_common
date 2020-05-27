@@ -2,6 +2,7 @@
 # pylint: disable=C0111,C0103,R0205
 
 __author__ = 'guotengfei'
+
 import functools
 import logging
 import traceback
@@ -32,7 +33,7 @@ class MQConnection(object):
     MQ连接管理类
     """
 
-    def __init__(self, amqp_url, type='producer', callback=None, *arg, **settings):
+    def __init__(self, url, type='producer', callback=None, *arg, **settings):
         """Create a new instance of the MQConnection class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -45,7 +46,7 @@ class MQConnection(object):
         self._channel = None
         self._closing = False
         self._consumer_tag = None
-        self._url = amqp_url
+        self._url = url
         self._type = type
         self._was_consuming = False
         self._reconnect_delay = 0

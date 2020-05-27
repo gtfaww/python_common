@@ -24,7 +24,7 @@ if __name__ == '__main__':
     file_path = FILE_PATH + '\config_setting.ini'
     result = get_parameter_config(file_path, CONFIG_SETTINGS, CONFIG_KEY_VALUES)
 
-    print result
-    print REDIS_SETTINGS
-    print MYSQL_SETTINGS
-    print BATTERY_PRODUCER
+    print(result)
+    print(REDIS_SETTINGS)
+    print(MYSQL_SETTINGS)
+    print(BATTERY_PRODUCER)

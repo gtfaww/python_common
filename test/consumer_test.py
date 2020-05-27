@@ -3,6 +3,7 @@
 import traceback
 
 from ddcCommon.rabbitMQ.consumer import Consumer
+from ddcCommon.rabbitMQ.consumer_factory import ConsumerFactory
 from settings import CONSUMER
 
 __author__ = 'guotengfei'
@@ -26,7 +27,7 @@ class ConsumerTest(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, url):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -34,7 +35,7 @@ class ConsumerTest(object):
 
         """
         self._channel = None
-        self._consumer = Consumer(self.on_message, **CONSUMER)
+        self._consumer = Consumer(self.on_message, url, **CONSUMER)
         self._consumer.connect()
 
     def on_message(self, channel, basic_deliver, properties, body):
@@ -53,13 +54,11 @@ class ConsumerTest(object):
         """
         try:
             self._channel = channel
-            LOGGER.info('Received message # %s from %s: %s',
+            LOGGER.info('Received message %s from %s: %s',
                         basic_deliver.delivery_tag, properties.app_id, body)
-            self._consumer.acknowledge_message(basic_deliver.delivery_tag)
-            print 1
             self._consumer.acknowledge_message(basic_deliver.delivery_tag)
         except Exception as e:
             LOGGER.error(traceback.format_exc())
 
 
-consumer_test = ConsumerTest()
+consumer_factory = ConsumerFactory(ConsumerTest)

@@ -13,6 +13,7 @@ PRODUCER = dict(amqp_url="amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?con
                 exchange_type='direct',
                 durable=False,
                 passive=False,
+                max_conn=3,  # 2消息持久化  1不持久化
                 delivery_mode=1,  # 2消息持久化  1不持久化
                 mandatory=True  # 没有队列消费数据时返回消息
                 )
@@ -30,17 +31,26 @@ CONSUMER = dict(amqp_url="amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?con
                 prefetch_count=128  # 预取消息数量
                 )
 
+# mongodb 配置信息
 MONGO_SETTING = dict(
     ip='192.168.166.104',
     user='vcom',
     password='vcomvcom',
     port=27017,
-    dbname='mongodb'
+    dbname='mongodb',
+    max_pool_size=100,
+    min_pool_size=5,
+    heartbeat=10000,
+    socket_timeout=10000,  # 单位 毫秒
+    conn_timeout=20000,
+    app_name='python_common',
+    server_select_timeout=10000,
+    connect=1  # 是否立即建立连接
 )
 
 # 读取参数配置信息
 CONFIG_SETTINGS = dict(
-    url="http://192.168.166.102:10005/config/getConfigByServiceID",
+    url="http://192.168.166.102:10001/config/getConfigByServiceID",
     app='USBAccessServer',
     Authorization='Basic dmNvbV90ZXN0OnZjb212Y29t',
     user="ddc",  # 用户名
@@ -62,8 +72,6 @@ DURABLE_PRODUCER = dict()
 ALARM_PRODUCER = dict()
 # 电池监控队列
 BATTERY_PRODUCER = dict()
-
-
 
 # 解析服务私有配置
 ACCESSS_SERVER_CONFIG = dict()
