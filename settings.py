@@ -13,13 +13,14 @@ PRODUCER = dict(amqp_url="amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?con
                 exchange_type='direct',
                 durable=False,
                 passive=False,
-                max_conn=3,  # 2消息持久化  1不持久化
+                max_conn=3,  # 最大conn数量
                 delivery_mode=1,  # 2消息持久化  1不持久化
                 mandatory=True  # 没有队列消费数据时返回消息
                 )
 
 # RabbitMQ 配置信息
-CONSUMER = dict(amqp_url="amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50",
+CONSUMER = dict(amqp_url=["amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50",
+                          "amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50"],
                 queue='locationQueue1',
                 routing_key='vcomKey1',
                 exchange='vcomExchange',

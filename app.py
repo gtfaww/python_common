@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
 import logging
-from time import sleep
 
-from ddcCommon.rabbitMQ.producer import Producer
-from settings import PRODUCER
-from test.consumer_test import consumer_factory
+from settings import CONSUMER
+from test.consumer_test import consumer_factory, ConsumerTest
 
 __author__ = 'guotengfei'
 
@@ -19,11 +17,11 @@ def main():
     LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
                   '-35s %(lineno) -5d: %(message)s')
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
-    global example
-    example = Producer(**PRODUCER)
-    example.connect()
-    example.publish_message('test', 'locationKey')
-    consumer_factory
+    # global example
+    # example = Producer(**PRODUCER)
+    # example.connect()
+    # example.publish_message('test', 'locationKey')
+    # consumer_factory
     loop.add_timeout(deadline=(loop.time() + .1), callback=init_component)
 
     loop.start()
@@ -31,7 +29,9 @@ def main():
 
 def init_component():
     pass
-    example.publish_message('vcomExchange', 'vcomKey1')
+    consumer_factory.init(ConsumerTest, **CONSUMER)
+
+    # example.publish_message('vcomExchange', 'vcomKey1')
 
 
 if __name__ == "__main__":

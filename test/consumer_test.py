@@ -4,11 +4,12 @@ import traceback
 
 from ddcCommon.rabbitMQ.consumer import Consumer
 from ddcCommon.rabbitMQ.consumer_factory import ConsumerFactory
-from settings import CONSUMER
 
 __author__ = 'guotengfei'
 
 import logging
+
+from settings import CONSUMER
 
 LOGGER = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class ConsumerTest(object):
 
     """
 
-    def __init__(self, url):
+    def __init__(self, url, **CONSUMER):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -61,4 +62,5 @@ class ConsumerTest(object):
             LOGGER.error(traceback.format_exc())
 
 
-consumer_factory = ConsumerFactory(ConsumerTest)
+consumer_factory = ConsumerFactory()
+

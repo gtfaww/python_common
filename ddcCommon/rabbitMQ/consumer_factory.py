@@ -2,8 +2,6 @@
 # pylint: disable=C0111,C0103,R0205
 import traceback
 
-from settings import CONSUMER
-
 __author__ = 'guotengfei'
 
 import logging
@@ -25,7 +23,16 @@ class ConsumerFactory(object):
 
     """
 
-    def __init__(self, cls):
+    def __init__(self):
+        """Create a new instance of the consumer class, passing in the AMQP
+        URL used to connect to RabbitMQ.
+
+        :param str amqp_url: The AMQP url to connect with
+
+        """
+        pass
+
+    def init(self, cls, **CONSUMER):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -36,8 +43,8 @@ class ConsumerFactory(object):
             urls = CONSUMER.get('amqp_url')
             if isinstance(urls, list):
                 for url in urls:
-                    cls(url)
+                    cls(url, **CONSUMER)
             else:
-                cls(urls)
+                cls(urls, **CONSUMER)
         except Exception as e:
             LOGGER.error(traceback.format_exc())
