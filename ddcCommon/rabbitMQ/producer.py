@@ -40,7 +40,7 @@ class Producer(object):
         self._message_number = 0
         self._deliveries = {}
         self._stopping = False
-        self._url = settings.get('amqp_url')
+        self._url = settings.get('produce_amqp_url') if settings.get('produce_amqp_url') else settings.get('amqp_url')
         self._delivery_mode = settings.get('delivery_mode', 1)
         self._mandatory = settings.get('mandatory', True)
         self.EXCHANGE = settings.get('exchange')
@@ -86,14 +86,14 @@ class Producer(object):
             self._message_number += 1
             self._deliveries.setdefault(self._message_number,
                                         {'routing_key': routing_key, 'message': message})
-            LOGGER.info('Published message %s, key: %s', message, routing_key)
+            LOGGER.debug('Published message %s, key: %s', message, routing_key)
             return True
         except Exception as e:
             if isinstance(e, AttributeError):
                 msg = e.args[0]
             else:
                 msg = e.message
-            LOGGER.error("mq Published message fail:%s", msg)
+            LOGGER.error("mq Published message fail:%s, message %s, key: %s", msg, message, routing_key)
             return False
 
     def get_channel(self):
@@ -134,7 +134,7 @@ class Producer(object):
                 self.schedule_next_message(msg['message'], msg['routing_key'])
 
             self._deliveries.pop(self._message_number, None)
-            LOGGER.info(
+            LOGGER.debug(
                 'Published %i messages, %i have yet to be confirmed, '
                 '%i were acked and %i were nacked', self._message_number,
                 len(self._deliveries), self._acked, self._nacked)

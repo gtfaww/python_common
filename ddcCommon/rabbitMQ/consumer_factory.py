@@ -40,7 +40,7 @@ class ConsumerFactory(object):
 
         """
         try:
-            urls = CONSUMER.get('amqp_url')
+            urls = CONSUMER.get('consumer_amqp_url')
             if isinstance(urls, list):
                 for url in urls:
                     cls(url, **CONSUMER)

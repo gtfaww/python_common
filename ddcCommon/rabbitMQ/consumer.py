@@ -23,14 +23,14 @@ class Consumer(object):
 
     """
 
-    def __init__(self, callback, url, *arg, **settings):
+    def __init__(self, callback, url=None, *arg, **settings):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
         :param str amqp_url: The AMQP url to connect with
 
         """
-        self._url = url
+        self._url = url if url else settings.get('amqp_url')
         self._settings = settings
         self._callback = callback
         self._connection = None

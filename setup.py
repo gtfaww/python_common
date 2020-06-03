@@ -8,7 +8,7 @@ kwargs = {}
 
 setup(
     name='ddcCommon',
-    version='1.0.6',
+    version='1.0.7',
     packages=['ddcCommon', 'ddcCommon.rabbitMQ', 'ddcCommon.MongoDB', 'ddcCommon.mysql', 'ddcCommon.util'],
     install_requires=[
         'pika>=1.1.0'

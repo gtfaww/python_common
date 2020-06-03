@@ -2,7 +2,8 @@
 # pylint: disable=C0111,C0103,R0205
 import logging
 
-from settings import CONSUMER
+from ddcCommon.rabbitMQ.producer import Producer
+from settings import CONSUMER, PRODUCER
 from test.consumer_test import consumer_factory, ConsumerTest
 
 __author__ = 'guotengfei'
@@ -17,10 +18,10 @@ def main():
     LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
                   '-35s %(lineno) -5d: %(message)s')
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
-    # global example
-    # example = Producer(**PRODUCER)
-    # example.connect()
-    # example.publish_message('test', 'locationKey')
+    global example
+    example = Producer(**PRODUCER)
+    example.connect()
+    example.publish_message('test', 'locationKey')
     # consumer_factory
     loop.add_timeout(deadline=(loop.time() + .1), callback=init_component)
 

@@ -6,7 +6,7 @@ __author__ = 'guotengfei'
 __date__ = '2016/12/21'
 
 # RabbitMQ 配置信息
-PRODUCER = dict(amqp_url="amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50",
+PRODUCER = dict(produce_amqp_url="amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50",
                 queue='locationQueue1',
                 routing_key='vcomKey1',
                 exchange='vcomExchange',
@@ -19,7 +19,7 @@ PRODUCER = dict(amqp_url="amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?con
                 )
 
 # RabbitMQ 配置信息
-CONSUMER = dict(amqp_url=["amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50",
+CONSUMER = dict(consumer_amqp_url=["amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50",
                           "amqp://vcom:vcomvcom@192.168.166.103:5672/%2Fvhost?connection_attempts=3&heartbeat=50"],
                 queue='locationQueue1',
                 routing_key='vcomKey1',
