@@ -3,12 +3,13 @@
 import logging
 
 from ddcCommon.rabbitMQ.producer import Producer
-from settings import CONSUMER, PRODUCER
-from test.consumer_test import consumer_factory, ConsumerTest
+from settings import PRODUCER, CONSUMER
 
 __author__ = 'guotengfei'
 
 from tornado.ioloop import IOLoop
+
+from test.consumer_test import consumer_factory, ConsumerTest
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,18 +22,20 @@ def main():
     global example
     example = Producer(**PRODUCER)
     example.connect()
-    example.publish_message('test', 'locationKey')
-    # consumer_factory
-    loop.add_timeout(deadline=(loop.time() + .1), callback=init_component)
+    example.publish_message('testdffaaaaaaaaaaaaaaaaaa', 'locationKey')
+    consumer_factory
+    loop.add_timeout(deadline=(loop.time() + 1.1), callback=init_component)
 
     loop.start()
 
 
 def init_component():
     pass
-    consumer_factory.init(ConsumerTest, **CONSUMER)
-
-    # example.publish_message('vcomExchange', 'vcomKey1')
+    # consumer_factory.init(ConsumerTest, **CONSUMER)
+    for i in range(1000000):
+        example.publish_message(
+            'testdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaa',
+            'testKey')
 
 
 if __name__ == "__main__":

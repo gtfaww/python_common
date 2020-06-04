@@ -55,6 +55,9 @@ class MQConnection(object):
         self.QUEUE = settings.get('queue')
         self.ROUTING_KEY = settings.get('routing_key')
         self.EXCHANGE_TYPE = settings.get('exchange_type')
+        self.AE_EXCHANGE = settings.get('ae_exchange')
+        self.AE_QUEUE = settings.get('ae_queue')
+        self.AE_EXCHANGE_TYPE = settings.get('ae_exchange_type')
         self._passive = settings.get('passive', True)
         self._durable = settings.get('durable', True)
         self._prefetch_count = settings.get('prefetch_count', 128)
@@ -174,6 +177,8 @@ class MQConnection(object):
         self._channel = channel
         self.add_on_channel_close_callback()
         self.setup_exchange(self.EXCHANGE)
+        if self.AE_EXCHANGE:
+            self.setup_ae_exchange(self.AE_EXCHANGE)
 
     @exception_catch
     def setup_exchange(self, exchange_name):
@@ -186,12 +191,37 @@ class MQConnection(object):
         """
         cb = functools.partial(
             self.on_exchange_declareok, userdata=exchange_name)
+        if self.AE_EXCHANGE:
+            args = {"alternate-exchange": self.AE_EXCHANGE}
+        else:
+            args = {}
+
         self._channel.exchange_declare(
             passive=self._passive,
             durable=self._durable,
             exchange=exchange_name,
             exchange_type=self.EXCHANGE_TYPE,
+            arguments=args,
             callback=cb)
+
+    @exception_catch
+    def setup_ae_exchange(self, exchange_name):
+        """Setup the exchange on RabbitMQ by invoking the Exchange.Declare RPC
+        command. When it is complete, the on_exchange_declareok method will
+        be invoked by pika.
+
+        :param str|unicode exchange_name: The name of the exchange to declare
+
+        """
+        ae_cb = functools.partial(
+            self.on_ae_exchange_declareok, userdata=exchange_name)
+        self._channel.exchange_declare(
+            passive=self._passive,
+            durable=self._durable,
+            exchange=exchange_name,
+            exchange_type=self.AE_EXCHANGE_TYPE,
+            arguments={},
+            callback=ae_cb)
 
     def on_exchange_declareok(self, _unused_frame, userdata):
         """Invoked by pika when RabbitMQ has finished the Exchange.Declare RPC
@@ -201,6 +231,15 @@ class MQConnection(object):
         """
         LOGGER.info('Exchange declared: %s', userdata)
         self.setup_queue(self.QUEUE)
+
+    def on_ae_exchange_declareok(self, _unused_frame, userdata):
+        """Invoked by pika when RabbitMQ has finished the Exchange.Declare RPC
+        command.
+        :param pika.Frame.Method unused_frame: Exchange.DeclareOk response frame
+        :param str|unicode userdata: Extra user data (exchange name)
+        """
+        LOGGER.info('Exchange declared: %s', userdata)
+        self.setup_ae_queue(self.AE_QUEUE)
 
     @exception_catch
     def setup_queue(self, queue_name):
@@ -217,6 +256,20 @@ class MQConnection(object):
             callback=self.on_queue_declareok)
 
     @exception_catch
+    def setup_ae_queue(self, queue_name):
+        """Setup the queue on RabbitMQ by invoking the Queue.Declare RPC
+        command. When it is complete, the on_queue_declareok method will
+        be invoked by pika.
+        :param str|unicode queue_name: The name of the queue to declare.
+        """
+        LOGGER.info('Declaring queue %s', queue_name)
+        self._channel.queue_declare(
+            durable=self._durable,
+            passive=self._passive,
+            queue=queue_name,
+            callback=self.on_ae_queue_declareok)
+
+    @exception_catch
     def on_queue_declareok(self, _unused_frame):
         """Method invoked by pika when the Queue.Declare RPC call made in
         setup_queue has completed. In this method we will bind the queue
@@ -230,6 +283,23 @@ class MQConnection(object):
         self._channel.queue_bind(
             self.QUEUE,
             self.EXCHANGE,
+            routing_key=self.ROUTING_KEY,
+            callback=self.on_bindok)
+
+    @exception_catch
+    def on_ae_queue_declareok(self, _unused_frame):
+        """Method invoked by pika when the Queue.Declare RPC call made in
+        setup_queue has completed. In this method we will bind the queue
+        and exchange together with the routing key by issuing the Queue.Bind
+        RPC command. When this command is complete, the on_bindok method will
+        be invoked by pika.
+        :param pika.frame.Method method_frame: The Queue.DeclareOk frame
+        """
+        LOGGER.info('Binding %s to %s with %s', self.AE_EXCHANGE, self.AE_QUEUE,
+                    self.ROUTING_KEY)
+        self._channel.queue_bind(
+            self.AE_QUEUE,
+            self.AE_EXCHANGE,
             routing_key=self.ROUTING_KEY,
             callback=self.on_bindok)
 
