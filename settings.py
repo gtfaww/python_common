@@ -14,9 +14,12 @@ PRODUCER = dict(produce_amqp_url="amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvh
                 ae_exchange='aeExchange',
                 ae_exchange_type='fanout',
                 ae_queue='aeQueue',
-                durable=True,
+                dl_exchange='dlExchange',
+                dl_exchange_type='direct',
+                dl_queue='dlQueue',
+                durable=False,
                 passive=False,
-                max_conn=3,  # 最大conn数量
+                max_conn=1,  # 最大conn数量
                 delivery_mode=1,  # 2消息持久化  1不持久化
                 mandatory=False  # 没有队列消费数据时返回消息
                 )
@@ -24,7 +27,7 @@ PRODUCER = dict(produce_amqp_url="amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvh
 # RabbitMQ 配置信息
 CONSUMER = dict(
     consumer_amqp_url=["amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvhost?connection_attempts=3&heartbeat=50",
-                       "amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvhost?connection_attempts=3&heartbeat=50"],
+                       ],
     queue='testQueue',
     routing_key='testKey',
     exchange='testExchange',
@@ -35,12 +38,12 @@ CONSUMER = dict(
     dl_exchange='dlExchange',
     dl_exchange_type='direct',
     dl_queue='dlQueue',
-    durable=True,
+    durable=False,
     passive=False,
     delivery_mode=2,  # 2消息持久化  1不持久化
     mandatory=False,  # 没有队列消费数据时返回消息
     prefetch_count=128  # 预取消息数量
-    )
+)
 
 # mongodb 配置信息
 MONGO_SETTING = dict(

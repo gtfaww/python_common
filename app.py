@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
 import logging
+import traceback
+
+from tornado.gen import sleep, coroutine
 
 from ddcCommon.rabbitMQ.producer import Producer
 from settings import PRODUCER, CONSUMER
@@ -24,19 +27,26 @@ def main():
     example.connect()
     example.publish_message('testdffaaaaaaaaaaaaaaaaaa', 'locationKey')
     consumer_factory
-    loop.add_timeout(deadline=(loop.time() + 1.1), callback=init_component)
+    loop.add_timeout(deadline=(loop.time() + 10.1), callback=init_component)
+
+    # loop.add_timeout(deadline=(loop.time() + 1.1), callback=init_component)
 
     loop.start()
 
-
+@coroutine
 def init_component():
     pass
     # consumer_factory.init(ConsumerTest, **CONSUMER)
-    for i in range(1000000):
-        example.publish_message(
-            'testdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaa',
-            'testKey')
-
+    print(11111111111)
+    try:
+        for i in range(100000):
+            yield sleep(0.01)
+            example.publish_message(
+                'testdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaa',
+                'testKey')
+    except Exception as e:
+        LOGGER.error('mq error')
+        LOGGER.error(traceback.format_exc())
 
 if __name__ == "__main__":
     main()

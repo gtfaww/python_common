@@ -58,6 +58,7 @@ class ConsumerTest(object):
             # LOGGER.info('Received message %s from %s: %s',
             #             basic_deliver.delivery_tag, properties.app_id, body)
             self._consumer.acknowledge_message(basic_deliver.delivery_tag)
+            # self._consumer.nack_message(basic_deliver.delivery_tag)
         except Exception as e:
             LOGGER.error(traceback.format_exc())
 

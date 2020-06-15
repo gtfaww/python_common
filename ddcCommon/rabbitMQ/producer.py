@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
+from _md5 import md5
 from collections import deque
 
 from ddcCommon.rabbitMQ.connection import MQConnection
@@ -108,6 +109,7 @@ class Producer(object):
             self._pool.append(self._connection)
         return self._channel
 
+
     def on_delivery_confirmation(self, method_frame):
         """Invoked by pika when RabbitMQ responds to a Basic.Publish RPC
         command, passing in either a Basic.Ack or Basic.Nack frame with
@@ -122,8 +124,8 @@ class Producer(object):
         try:
             confirmation_type = method_frame.method.NAME.split('.')[1].lower()
             delivery_tag = method_frame.method.delivery_tag
-            LOGGER.info('Received %s for delivery tag: %i', confirmation_type,
-                        delivery_tag)
+            LOGGER.debug('Received %s for delivery tag: %i', confirmation_type,
+                         delivery_tag)
             if confirmation_type == 'ack':
                 self._acked += 1
             elif confirmation_type == 'nack':
@@ -134,7 +136,7 @@ class Producer(object):
                 self.schedule_next_message(msg['message'], msg['routing_key'])
 
             self._deliveries.pop(self._message_number, None)
-            LOGGER.debug(
+            LOGGER.info(
                 'Published %i messages, %i have yet to be confirmed, '
                 '%i were acked and %i were nacked', self._message_number,
                 len(self._deliveries), self._acked, self._nacked)

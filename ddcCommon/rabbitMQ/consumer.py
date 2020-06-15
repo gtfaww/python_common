@@ -63,7 +63,7 @@ class Consumer(object):
         self.get_channel()
         self._channel.basic_ack(delivery_tag, multiple)
 
-    def nack_message(self, delivery_tag=None, multiple=False, requeue=True):
+    def nack_message(self, delivery_tag=None, multiple=False, requeue=False):
         """This method allows a client to reject one or more incoming messages.
         It can be used to interrupt and cancel large incoming messages, or
         return untreatable messages to their original queue.
