@@ -93,6 +93,9 @@ class MongodbClient(object):
             except OperationFailure as e:
                 LOGGER.error(traceback.print_exc())
                 LOGGER.error(message_format("mongo init error: " + e.message))
+            except Exception as e:
+                LOGGER.error(traceback.print_exc())
+                LOGGER.error(message_format("mongo init error: " + e.message))
             else:
                 LOGGER.info("mongo init success")
 

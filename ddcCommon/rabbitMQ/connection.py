@@ -224,7 +224,7 @@ class MQConnection(object):
             self.on_ae_exchange_declareok, userdata=exchange_name)
         self._channel.exchange_declare(
             passive=self._passive,
-            durable=self._durable,
+            durable=False,
             exchange=exchange_name,
             exchange_type=self.AE_EXCHANGE_TYPE,
             arguments={},
@@ -243,7 +243,7 @@ class MQConnection(object):
             self.on_dl_exchange_declareok, userdata=exchange_name)
         self._channel.exchange_declare(
             passive=self._passive,
-            durable=self._durable,
+            durable=False,
             exchange=exchange_name,
             exchange_type=self.DL_EXCHANGE_TYPE,
             arguments={},
@@ -304,7 +304,7 @@ class MQConnection(object):
         """
         LOGGER.info('Declaring queue %s', queue_name)
         self._channel.queue_declare(
-            durable=self._durable,
+            durable=False,
             passive=self._passive,
             queue=queue_name,
             callback=self.on_ae_queue_declareok)
@@ -318,7 +318,7 @@ class MQConnection(object):
         """
         LOGGER.info('Declaring queue %s', queue_name)
         self._channel.queue_declare(
-            durable=self._durable,
+            durable=False,
             passive=self._passive,
             queue=queue_name,
             callback=self.on_dl_queue_declareok)

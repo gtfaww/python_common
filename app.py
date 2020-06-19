@@ -39,7 +39,7 @@ def init_component():
     # consumer_factory.init(ConsumerTest, **CONSUMER)
     print(11111111111)
     try:
-        for i in range(100000):
+        for i in range(1):
             yield sleep(0.01)
             example.publish_message(
                 'testdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaatestdffaaaaaaaaaaaaaaaaaa',

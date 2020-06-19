@@ -17,9 +17,9 @@ PRODUCER = dict(produce_amqp_url="amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvh
                 dl_exchange='dlExchange',
                 dl_exchange_type='direct',
                 dl_queue='dlQueue',
-                durable=False,
+                durable=True,
                 passive=False,
-                max_conn=1,  # 最大conn数量
+                max_conn=3,  # 最大conn数量
                 delivery_mode=1,  # 2消息持久化  1不持久化
                 mandatory=False  # 没有队列消费数据时返回消息
                 )
@@ -47,11 +47,11 @@ CONSUMER = dict(
 
 # mongodb 配置信息
 MONGO_SETTING = dict(
-    ip='192.168.166.104',
-    user='vcom',
-    password='vcomvcom',
-    port=27017,
-    dbname='mongodb',
+    ip='192.168.119.75',
+    user='uxin',
+    password='YTk0_ODRiNTA0ZDU2',
+    port=27018,
+    dbname='uxin',
     max_pool_size=100,
     min_pool_size=5,
     heartbeat=10000,
