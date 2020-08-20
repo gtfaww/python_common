@@ -284,16 +284,20 @@ class MQConnection(object):
         :param str|unicode queue_name: The name of the queue to declare.
         """
         LOGGER.info('Declaring queue %s', queue_name)
-        args = {}
-        if self.DL_EXCHANGE:
-            args['x-dead-letter-exchange'] = self.DL_EXCHANGE
+        if self._type == 'consumer' and self.EXCHANGE_TYPE == 'x-modulus-hash':
+            if not self._was_consuming:
+                self.start_consuming()
+        else:
+            args = {}
+            if self.DL_EXCHANGE:
+                args['x-dead-letter-exchange'] = self.DL_EXCHANGE
 
-        self._channel.queue_declare(
-            durable=self._durable,
-            passive=self._passive,
-            queue=queue_name,
-            arguments=args,
-            callback=self.on_queue_declareok)
+            self._channel.queue_declare(
+                durable=self._durable,
+                passive=self._passive,
+                queue=queue_name,
+                arguments=args,
+                callback=self.on_queue_declareok)
 
     @exception_catch
     def setup_ae_queue(self, queue_name):

@@ -7,16 +7,10 @@ __date__ = '2016/12/21'
 
 # RabbitMQ 配置信息
 PRODUCER = dict(produce_amqp_url="amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvhost?connection_attempts=3&heartbeat=50",
-                queue='testQueue',
-                routing_key='testKey',
-                exchange='testExchange',
-                exchange_type='direct',
-                ae_exchange='aeExchange',
-                ae_exchange_type='fanout',
-                ae_queue='aeQueue',
-                dl_exchange='dlExchange',
-                dl_exchange_type='direct',
-                dl_queue='dlQueue',
+                queue='history',
+                routing_key='1234',
+                exchange='history',
+                exchange_type='x-modulus-hash',
                 durable=True,
                 passive=False,
                 max_conn=3,  # 最大conn数量
@@ -28,17 +22,11 @@ PRODUCER = dict(produce_amqp_url="amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvh
 CONSUMER = dict(
     consumer_amqp_url=["amqp://vcom:vcomvcom@192.168.150.24:5671/%2Fvhost?connection_attempts=3&heartbeat=50",
                        ],
-    queue='testQueue',
-    routing_key='testKey',
-    exchange='testExchange',
-    exchange_type='direct',
-    ae_exchange='aeExchange',
-    ae_exchange_type='fanout',
-    ae_queue='aeQueue',
-    dl_exchange='dlExchange',
-    dl_exchange_type='direct',
-    dl_queue='dlQueue',
-    durable=False,
+    queue='history',
+    routing_key='1234',
+    exchange='history',
+    exchange_type='x-modulus-hash',
+    durable=True,
     passive=False,
     delivery_mode=2,  # 2消息持久化  1不持久化
     mandatory=False,  # 没有队列消费数据时返回消息

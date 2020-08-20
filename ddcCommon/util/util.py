@@ -7,6 +7,9 @@ import json
 import logging
 import sys
 import traceback
+from datetime import datetime
+
+from pytz import timezone
 
 try:
     from ConfigParser import RawConfigParser
@@ -174,3 +177,46 @@ def message_format(msg, uri='', data=None):
     format_list = [uri, file_name, func_name, line_no, uuid, device_id, message]
     format_str = module_name + "&".join(format_list)
     return format_str
+
+
+def convert_timestamp_to_str(ts, time_zone='UTC'):
+    """
+    时区转换
+    """
+    # 转换成localtime
+
+    time_local = datetime.fromtimestamp(ts, timezone(time_zone))
+    # 转换成新的时间格式
+    time_str = time_local.strftime("%Y-%m-%d %H:%M:%S")
+    return time_str
+
+
+def get_bit_val(byte, index):
+    """
+    得到某个字节中某一位（Bit）的值
+    :param byte: 待取值的字节值
+    :param index: 待读取位的序号，从右向左0开始，0-7为一个完整字节的8个位
+    :returns: 返回读取该位的值，0或1
+    """
+
+    if byte & (1 << index):
+        return 1
+    else:
+        return 0
+
+def get_byte_height_4(byte):
+    """
+    获取byte高4位的值
+    :param byte:
+    :return:
+    """
+    return (byte & 0xF0) >> 4
+
+
+def get_byte_low_4(byte):
+    """
+    获取byte低4位的值
+    :param byte:
+    :return:
+    """
+    return byte & 0x0F

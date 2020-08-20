@@ -55,6 +55,7 @@ class ConsumerTest(object):
         """
         try:
             self._channel = channel
+            LOGGER.info(str(body))
             # LOGGER.info('Received message %s from %s: %s',
             #             basic_deliver.delivery_tag, properties.app_id, body)
             self._consumer.acknowledge_message(basic_deliver.delivery_tag)
