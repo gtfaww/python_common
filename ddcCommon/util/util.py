@@ -220,3 +220,11 @@ def get_byte_low_4(byte):
     :return:
     """
     return byte & 0x0F
+
+def get_byte_low_7(byte):
+    """
+    获取byte低7位的值
+    :param byte:
+    :return:
+    """
+    return byte & 0x7F
