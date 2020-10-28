@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
-from _md5 import md5
 from collections import deque
 
 from ddcCommon.rabbitMQ.connection import MQConnection
@@ -108,7 +107,6 @@ class Producer(object):
             self._channel = self._connection.get_channel()
             self._pool.append(self._connection)
         return self._channel
-
 
     def on_delivery_confirmation(self, method_frame):
         """Invoked by pika when RabbitMQ responds to a Basic.Publish RPC

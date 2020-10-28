@@ -9,11 +9,11 @@ from redis.sentinel import (Sentinel)
 from settings import REDIS_SETTINGS
 
 
-def redis_decorator(func):
+def exception_catch(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except Exception, e:
+        except Exception as e:
             logging.info(e.message)
             auto_status = False
             logging.info('set auto_status=False')
