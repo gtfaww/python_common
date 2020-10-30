@@ -84,8 +84,8 @@ class Producer(object):
             if not self._channel.callbacks.pending(self._channel.channel_number, '_on_return'):
                 self._channel.add_on_return_callback(self.return_callback)
             self._message_number += 1
-            self._deliveries.setdefault(self._message_number,
-                                        {'routing_key': routing_key, 'message': message})
+            # self._deliveries.setdefault(self._message_number,
+            #                             {'routing_key': routing_key, 'message': message})
             LOGGER.debug('Published message %s, key: %s', message, routing_key)
             return True
         except Exception as e:
@@ -122,18 +122,18 @@ class Producer(object):
         try:
             confirmation_type = method_frame.method.NAME.split('.')[1].lower()
             delivery_tag = method_frame.method.delivery_tag
-            LOGGER.debug('Received %s for delivery tag: %i', confirmation_type,
+            LOGGER.info('Received %s for delivery tag: %i', confirmation_type,
                          delivery_tag)
             if confirmation_type == 'ack':
                 self._acked += 1
             elif confirmation_type == 'nack':
                 self._nacked += 1
-                msg = self._deliveries.get(self._message_number)
-                msg = json.loads(msg)
-                LOGGER.info('resend msg: %s  for %0.1f seconds ', msg['message'], self.PUBLISH_INTERVAL)
-                self.schedule_next_message(msg['message'], msg['routing_key'])
+                # msg = self._deliveries.get(self._message_number)
+                # msg = json.loads(msg)
+                # LOGGER.info('resend msg: %s  for %0.1f seconds ', msg['message'], self.PUBLISH_INTERVAL)
+                # self.schedule_next_message(msg['message'], msg['routing_key'])
 
-            self._deliveries.pop(self._message_number, None)
+            # self._deliveries.pop(self._message_number, None)
             LOGGER.info(
                 'Published %i messages, %i have yet to be confirmed, '
                 '%i were acked and %i were nacked', self._message_number,
