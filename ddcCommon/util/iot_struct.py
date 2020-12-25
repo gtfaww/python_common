@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 IOT struct
 """
@@ -7,23 +8,54 @@ IOT struct
 # @Time：2020/8/19
 import base64
 import binascii
+import functools
 import logging
+import struct
+import traceback
 from struct import unpack_from
 
-from ddcCommon.util.util import convert_timestamp_to_str
+from util import datetime_as_timezone
+
+from ddcCommon.util.util import get_byte_height_4, get_byte_low_4
 
 LOGGER = logging.getLogger(__name__)
 
-def exception_catch(func):
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error(e.message)
 
-            raise
+class DDCException(Exception):
+    def __init__(self, code, message, request_id=None):
+        self.code = code
+        self.message = message
+        self.request_id = request_id
 
-    return wrapper
+
+class ParseErrorException(DDCException):
+    pass
+
+
+class ConfigErrorException(DDCException):
+    pass
+
+
+def exception_catch(cls):
+    """
+    cls 是自定义异常，
+    """
+
+    def exception_catch_wrap(func):
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                LOGGER.error(e.message)
+                LOGGER.error(traceback.format_exc())
+                raise cls(500, 'parse error')
+
+        return wrapper
+
+    return exception_catch_wrap
+
 
 class IOTStruct():
     """
@@ -33,19 +65,95 @@ class IOTStruct():
     def __init__(self):
         pass
 
-    def pack(self):
-        pass
+    def pack(self, data, frm):
+        """
+        封装数据
+        :param data: 二进制data, base64 decode后的
+        :param frm: json 配置
+        :return:
+        """
+        if not isinstance(frm, list):
+            raise ConfigErrorException(500, 'config error')
 
-    def unpack(self, data, frm):
+        header0 = 66
+        header1 = 68
+
+        a_frm_char = ">BB"
+        values = []
+
+        values.append(header0)
+        values.append(header1)
+
+        for col in frm:
+            frm_char, length = self.check_length(col['length'])
+            a_frm_char += frm_char
+            sub_data = col.get('sub_data', None)
+            if sub_data:
+                value = ""
+                for sub_d in sub_data:
+                    v = data[sub_d['name']]
+                    value += str(v)
+                    value = value.rjust(8 * length, '0')
+                values.append(int(value, base=2))
+            else:
+                values.append(data.get(col['name']))
+
+        ret = struct.pack(a_frm_char, *values)
+        ret += self.gen_check(ret[2:])
+        ret = binascii.b2a_hex(ret)
+
+        return ret
+
+    def get_version_and_msg_type(self, data):
+        """
+        return protocal_version, cmd
+        """
+        msg = unpack_from(">B", data, offset=2)[0]
+        protocal_version = get_byte_height_4(msg)
+        cmd = get_byte_low_4(msg)
+        return protocal_version, cmd
+
+    def check_sn(self, data):
+        """
+        检查校验码
+        return protocal_version, cmd
+        """
+        check_sum = data[-2:]
+        check = self.gen_check(data[2:-2])
+        return check == check_sum
+
+    @exception_catch(ParseErrorException)
+    def gen_check(self, data):
+        """
+        校验检查
+        @param data:
+        @return:
+        """
+        check_last_second_byte = 0
+        check_last_byte = 0
+        for i in range(len(data)):
+            tmp_data = unpack_from('>B', data, offset=i)[0]
+            check_last_second_byte = check_last_second_byte + tmp_data
+            check_last_byte = check_last_second_byte + check_last_byte
+
+        check_last_second_byte &= 0XFF
+        check_last_byte &= 0XFF
+
+        return struct.pack('>BB', check_last_second_byte, check_last_byte)
+
+    @exception_catch(ParseErrorException)
+    def unpack(self, data, frm, start_byte=0):
         """
         解析数据
-        :param data:
-        :param frm:
+        :param data: 二进制data, base64 decode后的
+        :param frm: json 配置
         :return:
         """
         ret_json = {}
-        start_byte = 0
-        data = base64.b64decode(bytes(data, encoding='UTF-8'))
+        start_byte = start_byte
+
+        if not isinstance(frm, list):
+            raise ConfigErrorException(500, 'config error')
 
         for col in frm:
             if start_byte >= (len(data) - 2):  # 处理只有一个位置点情况
@@ -58,6 +166,7 @@ class IOTStruct():
             ret_json.setdefault(col['name'], value)
         return ret_json
 
+    @exception_catch(ParseErrorException)
     def transfer_value(self, col, ret_json, value, length):
         """
         按照类型转换value
@@ -67,7 +176,8 @@ class IOTStruct():
         :return:
         """
         if col['type'] == "timestamp":
-            value = convert_timestamp_to_str(value)
+            time_zone = col.get("time_zone", "utc")
+            value = datetime_as_timezone(value, to_time_zone=time_zone)
         elif col['type'] == "bit":
             byte_l = bin(value)[2:]  # 去掉开头ob
             byte_l = byte_l.rjust(8 * length, '0')[::-1]  # 反转顺序为 低到高
@@ -81,22 +191,12 @@ class IOTStruct():
         elif col['type'] == "voltage":
             value = float(value) / 10
         elif col['type'] == "Coordinate":
-            value /= 1000000.0
-        # elif col['type'] == "bit3":
-        #     sub_data = col['sub_data']
-        #     ret_json.setdefault(sub_data[0]['name'], get_byte_low_4(value))
-        #     ret_json.setdefault(sub_data[1]['name'], (value & 0x70) >> 4)
-        #     ret_json.setdefault(sub_data[2]['name'], get_bit_val(value, 7))
-        # elif col['type'] == "bit4":
-        #     sub_data = col['sub_data']
-        #     ret_json.setdefault(sub_data[0]['name'], get_byte_height_4(value))
-        #     ret_json.setdefault(sub_data[1]['name'], get_byte_low_4(value))
-        # elif col['type'] == "bit7":
-        #     sub_data = col['sub_data']
-        #     ret_json.setdefault(sub_data[0]['name'], get_byte_low_7(value) * 2)
-        #     ret_json.setdefault(sub_data[1]['name'], get_bit_val(value, 7))
+            precision = col['precision']
+            precision = float(10 ** precision)
+            value /= precision
         return value
 
+    @exception_catch(ParseErrorException)
     def parse(self, data, frm_char, length, start_byte):
         """
         按类型解析数据
@@ -115,6 +215,8 @@ class IOTStruct():
             start = start_byte * 2
             end = start + length * 2 - 1
             value = binascii.b2a_hex(data)[start:end]
+            if isinstance(value, bytes):
+                value = value.decode('utf-8', 'ignore')
         elif frm_char == "ip":
             frm_char = ">B"
             ip1 = unpack_from(frm_char, data, offset=start_byte)[0]
@@ -127,6 +229,7 @@ class IOTStruct():
             value = unpack_from(frm_char, data, offset=start_byte)[0]
         return value
 
+    @exception_catch(ParseErrorException)
     def check_length(self, length):
         """
             根据length返回 解析类型和长度
@@ -168,36 +271,75 @@ class IOTStruct():
         return ret
 
 
+iot_struct = IOTStruct()
+
 if __name__ == '__main__':
-    # 应答
-    data = 'QkQIAAABABxezd3UAAAgAAAAA0YCEgAAKgAAhoYmBAFmEDAAhV8A'
+    data = 'QkQCAClfx8i8/6wAAAgA0NEAAA8AAUYBEwE1gpRQAQFfx8i7ADUjTgCtRl0AB9eT'
     frm = [{"name": "head", "length": "U2", "type": "constant"},
            {"name": "msg_type", "length": "U1", "type": "bit", "sub_data": [
                {"name": "cmd", "len": 4}, {"name": "protocal_version", "len": 4}
            ]},
-           {"name": "serial_num", "length": "U2", "type": "constant"},
-           {"name": "attribute", "length": "U1", "type": "constant"},
            {"name": "length", "length": "U2", "type": "constant"},
-           {"name": "utc_time", "length": "U4", "type": "timestamp"},
-           {"name": "signal_strength", "length": "I2", "type": "constant"},
-           {"name": "terminal_temperature", "length": "U1", "type": "constant"},
-           {"name": "retain1", "length": "U1", "type": "pass"},
-           {"name": "state_config", "length": "U4", "type": "bit", "sub_data": [
-               {"name": "switch", "len": 1}, {"name": "guard_against_theft", "len": 1},
-               {"name": "rear_wheel_lock", "len": 1},
-               {"name": "backseat_lock", "len": 1}, {"name": "floodlight", "len": 1},
-               {"name": "battery_compartments", "len": 1},
-               {"name": "rear_wheel", "len": 1}, {"name": "mobile", "len": 1}, {"name": "positioning_way", "len": 1},
-               {"name": "battery_status", "len": 1}
-           ]},
-           {"name": "terminal_voltage", "length": "U2", "type": "voltage"},
-           {"name": "retain2", "length": "I1", "type": "pass"},
+           {"name": "timestamp", "length": "U4", "type": "timestamp", "time_zone": "utc"},
+           {"name": "retain1", "length": "I2", "type": "pass"},
+           {"name": "retain2", "length": "U1", "type": "pass"},
            {"name": "retain3", "length": "U1", "type": "pass"},
-           {"name": "cmd_type", "length": "U1", "type": "constant"},
-           {"name": "mid", "length": "I2", "type": "constant"},
-           {"name": "imei", "length": "BCD[8]", "type": "constant"},
-           {"name": "err_code", "length": "U1", "type": "constant"}]
+           {"name": "retain4", "length": "U4", "type": "pass"},
+           {"name": "retain5", "length": "U2", "type": "pass"},
+           {"name": "retain6", "length": "I1", "type": "pass"},
+           {"name": "terminal_version", "length": "U1", "type": "constant"},
+           {"name": "elec", "length": "U1", "type": "bit",
+            "sub_data": [
+                {"name": "elec_alarm", "len": 1},
+                {"name": "elec_vol", "len": 7}
+            ]},
+           {"name": "imsi", "length": "BCD[8]", "type": "constant"},
+           {"name": "point_num", "length": "U1", "type": "constant"},
+           {"name": "location_type", "length": "U1", "type": "bit",
+            "sub_data": [
+                {"name": "gps_location", "len": 1},
+                {"name": "wifi_location", "len": 1}
+            ]},
+           {"name": "first_timestamp", "length": "U4", "type": "constant", "time_zone": "utc"},
+           {"name": "lat", "length": "I4", "type": "Coordinate", "precision": 5},
+           {"name": "lng", "length": "I4", "type": "Coordinate", "precision": 5},
+           {"name": "speed", "length": "U1", "type": "constant"},
+           {"name": "star_num", "length": "U1", "type": "constant"}
+           ]
 
-    struct = IOTStruct()
-    ret_json = struct.unpack(data, frm)
+    iot_struct = IOTStruct()
+    data = base64.b64decode(bytes(data, encoding="UTF8"))
+    print(iot_struct.get_version_and_msg_type(data))
+    ret_json = iot_struct.unpack(data, frm)
     print(ret_json)
+
+    ret = iot_struct.check_sn(data)
+    print(ret)
+    # old_json = '{"terminal_low_power_alarm": "0", "duandian_alarm": "0", "wifi_lng": "113.5634475", "lat": 34.82468, "weiyi_alarm": "0", "lng": 113.55712, "speed": 0, "star_num": 18, "wendu_alarm": "0", "wifi_lat": "34.8233811", "location": "10000011", "location_type7": "1", "common_alarm": "00010000", "imsi": "460113015461466", "location_type8": "1", "timestamp": "2020-11-30 15:07:06", "terminal_version": 0, "terminal_temperature": 0, "protocal_version": 0, "zhendong_alarm": "0", "first_time_stamp": 1579258285, "location_type": 3, "terminal_vol": 100, "elec": "11001000", "cmd": 1, "wifi_num": 5, "length": 77, "points": [{"mac": "a8:a7:95:07:dc:7f", "intensity": "52"}, {"mac": "b0:95:8e:bb:28:3a", "intensity": "52"}, {"mac": "00:03:0f:10:67:3a", "intensity": "64"}, {"mac": "00:03:0f:10:09:27", "intensity": "66"}, {"mac": "b4:86:55:7f:e0:31", "intensity": "76"}], "chaichu_alarm": "1"}'
+    # compare(old_json, json.dumps(ret_json))
+
+    frm = [{"name": "msg_type", "length": "U1", "type": "constant"},
+           {"name": "length", "length": "U2", "type": "constant"},
+           {"name": "mid", "length": "U2", "type": "constant"},
+           {"name": "config", "length": "U1", "type": "pass",
+            "sub_data": [
+                {"name": "tracing_config", "len": 1}
+            ]},
+           {"name": "tracing_interval", "length": "U2", "type": "pass"},
+           {"name": "tracing_duration", "length": "U2", "type": "pass"}
+           ]
+
+    data = dict(
+        msg_type=35,
+        length=7,
+        mid=1,
+        tracing_config=1,
+        tracing_interval=30,
+        tracing_duration=5
+    )
+
+    old = '4244230007000101001e00054f00'
+    ret = iot_struct.pack(data, frm)
+    print(old)
+
+    print(ret)

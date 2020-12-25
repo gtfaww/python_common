@@ -9,6 +9,7 @@ import sys
 import traceback
 from datetime import datetime
 
+from dateutil.tz import gettz
 from pytz import timezone
 
 try:
@@ -191,6 +192,21 @@ def convert_timestamp_to_str(ts, time_zone='UTC'):
     return time_str
 
 
+def datetime_as_timezone(timestamp, from_time_zone='Asia/Shanghai', to_time_zone='UTC'):
+    """
+    时区转换
+    :param timestamp:
+    :param from_time_zone:
+    :param to_time_zone:
+    :return:
+    """
+    date_time = datetime.fromtimestamp(timestamp, gettz('UTC'))
+    to_time_zone = gettz(to_time_zone)
+    from_time_zone = gettz(from_time_zone)
+    time = date_time.replace(tzinfo=from_time_zone).astimezone(to_time_zone)
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
 def get_bit_val(byte, index):
     """
     得到某个字节中某一位（Bit）的值
@@ -203,6 +219,7 @@ def get_bit_val(byte, index):
         return 1
     else:
         return 0
+
 
 def get_byte_height_4(byte):
     """
@@ -220,6 +237,7 @@ def get_byte_low_4(byte):
     :return:
     """
     return byte & 0x0F
+
 
 def get_byte_low_7(byte):
     """
