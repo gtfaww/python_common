@@ -87,14 +87,23 @@ class IOTStruct():
         for col in frm:
             frm_char, length = self.check_length(col['length'])
             a_frm_char += frm_char
-            sub_data = col.get('sub_data', None)
-            if sub_data:
-                value = ""
-                for sub_d in sub_data:
-                    v = data[sub_d['name']]
-                    value += str(v)
-                    value = value.rjust(8 * length, '0')
-                values.append(int(value, base=2))
+            type = col.get('type', None)
+            if type == "bit":
+                value = self.pack_bit(col, data, length)
+                values.append(value)
+            elif type == "loop":
+                num = data.get(col['name'])
+                values.append(num)
+
+                for first in col['first_data']:
+                    first_data = data['data'][0]
+                    self.first_data = first_data
+                    a_frm_char = self.pack_value(a_frm_char, first, first_data, values)
+
+                for i in range(1, num):
+                    for other in col['other_data']:
+                        other_data = data['data'][i]
+                        a_frm_char = self.pack_value(a_frm_char, other, other_data, values)
             else:
                 values.append(data.get(col['name']))
 
@@ -103,6 +112,44 @@ class IOTStruct():
         ret = binascii.b2a_hex(ret)
 
         return ret
+
+    def pack_value(self, a_frm_char, other, other_data, values):
+        """
+        拼装value
+        :param a_frm_char:
+        :param other:
+        :param other_data:
+        :param values:
+        :return:
+        """
+        frm_char, length = self.check_length(other['length'])
+        a_frm_char += frm_char
+        type = other.get('type', None)
+        if type == "bit":
+            value = self.pack_bit(other, other_data, length)
+        elif type == "subtract":
+            value = other_data.get(other['name']) - self.first_data.get(other['name'])
+        else:
+            value = other_data.get(other['name'])
+        values.append(value)
+        return a_frm_char
+
+    def pack_bit(self, col, data, length):
+        """
+        包装 bit
+        :param col:
+        :param data:
+        :param length:
+        :return:
+        """
+        sub_data = col.get('sub_data', None)
+        value = ""
+        for sub_d in sub_data:
+            v = data[sub_d['name']]
+            value += str(v)
+        value = value[::-1]
+        value = value.rjust(8 * length, '0')
+        return int(value, base=2)
 
     def get_version_and_msg_type(self, data):
         """
@@ -321,24 +368,40 @@ if __name__ == '__main__':
     frm = [{"name": "msg_type", "length": "U1", "type": "constant"},
            {"name": "length", "length": "U2", "type": "constant"},
            {"name": "mid", "length": "U2", "type": "constant"},
-           {"name": "config", "length": "U1", "type": "pass",
-            "sub_data": [
-                {"name": "tracing_config", "len": 1}
-            ]},
-           {"name": "tracing_interval", "length": "U2", "type": "pass"},
-           {"name": "tracing_duration", "length": "U2", "type": "pass"}
+           {"name": "num", "length": "U1", "type": "loop",
+            "first_data": [
+                {"name": "latitude", "length": "U4", "type": "constant"},
+                {"name": "longitude", "length": "U4", "type": "constant"},
+                {"name": "radius", "length": "U2", "type": "constant"},
+                {"name": "fence_config", "length": "U1", "type": "bit",
+                 "sub_data": [
+                     {"name": "out_fence_alarm", "len": 1},
+                     {"name": "enter_fence_alarm", "len": 1}
+                 ]}],
+            "other_data": [
+                {"name": "latitude", "length": "I2", "type": "subtract"},
+                {"name": "longitude", "length": "I2", "type": "subtract"},
+                {"name": "radius", "length": "U2", "type": "constant"},
+                {"name": "fence_config", "length": "U1", "type": "bit",
+                 "sub_data": [
+                     {"name": "out_fence_alarm", "len": 1},
+                     {"name": "enter_fence_alarm", "len": 1}
+                 ]}]
+            }
            ]
 
     data = dict(
-        msg_type=35,
-        length=7,
-        mid=1,
-        tracing_config=1,
-        tracing_interval=30,
-        tracing_duration=5
+        msg_type=41,
+        length=21,
+        mid=14,
+        num=2,
+        data=[{"latitude": 3699999, "longitude": 11388889, "radius": 2, "out_fence_alarm": 1, "enter_fence_alarm": 1},
+              {"latitude": 3699999, "longitude": 11388889, "radius": 2, "out_fence_alarm": 1, "enter_fence_alarm": 1}]
     )
 
-    old = '4244230007000101001e00054f00'
+    old = '4244290015000e020038751f00adc7d900020300000000000203715e'
+
+
     ret = iot_struct.pack(data, frm)
     print(old)
 
